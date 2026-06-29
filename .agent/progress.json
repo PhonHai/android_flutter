@@ -1,0 +1,21 @@
+{
+  "project": "PomodoroNative",
+  "created": "2026-06-28",
+  "last_sync": "2026-06-28",
+  "last_commit": null,
+  "session_count": 1,
+  "changes_count": 0,
+  "known_unknowns": [
+    "MethodChannel saveRecord/getRecords 为 TODO 占位，需接入 Room",
+    "PomodoroListActivity HistoryListPlaceholder 需替换为 Room + Paging3",
+    "无 release keystore，当前仅有 debug 签名"
+  ],
+  "verify_stats": {
+    "passed": 1,
+    "failed": 0,
+    "last_verify": null
+  },
+  "current_phase": "MVP 基础功能完成",
+  "tasks": [],
+  "notes": "项目初始化完成：Flutter 番茄钟模块 (Riverpod + sqflite + CustomPaint) + 原生 Android 壳 (Compose + FlutterFragment + MethodChannel)。Week 1 策略：sqflite 直接持久化，MethodChannel 占位。Week 2 计划：引入 Room + Paging3。"
+}

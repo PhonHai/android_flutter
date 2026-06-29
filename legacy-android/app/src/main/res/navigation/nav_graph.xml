@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  nav_graph.xml — 4 级导航图
+
+  【改动说明】
+  原来 startDestination="timerFragment"，启动直接是番茄钟。
+  现在首页改成底部 4 个 Tab 切换，所以 startDestination 改为 tabContainerFragment。
+  TabContainerFragment 内部包含 4 个 Tab，其中第一个 Tab 是 TimerFragment。
+
+  路由链路：
+    TabContainerFragment（首页，含 4 个 Tab） ← startDestination
+      第一个 Tab：TimerFragment（番茄钟 + 进入导航演示入口）
+        → 导航演示首页(homeFragment)
+          → 列表(listFragment)
+            → 详情(detailFragment/{itemId})
+              → 总结(commentFragment/{itemId}) ← 终点
+
+  返回栈演示：
+    - 系统返回键：在四级导航中逐级 pop
+    - 总结页「回到首页」：popBackStack(R.id.tabContainerFragment, false)，清空中间页面，回到 TabContainerFragment
+-->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/tabContainerFragment">
+
+    <!-- ═══════════ 首页：Tab 容器（含 4 个 Tab） ═══════════ -->
+    <fragment
+        android:id="@+id/tabContainerFragment"
+        android:name="com.pomodoro.legacy.ui.TabContainerFragment"
+        android:label="首页" />
+
+    <!--
+      ═══════════ 第 1 级：番茄钟 ═══════════
+      注意：TimerFragment 现在是 TabContainerFragment 的第一个子 Tab。
+      它仍然注册在 nav_graph 里，这样内部可以拿到同一个 NavController 做导航。
+      但它不再是 startDestination，也不再被 NavController 直接管理生命周期。
+    -->
+    <fragment
+        android:id="@+id/timerFragment"
+        android:name="com.pomodoro.legacy.ui.TimerFragment"
+        android:label="番茄钟" />
+
+    <!-- ═══════════ 第 2 级：导航演示首页 ═══════════ -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.pomodoro.legacy.ui.home.HomeFragment"
+        android:label="导航首页">
+
+        <action
+            android:id="@+id/action_home_to_list"
+            app:destination="@id/listFragment" />
+    </fragment>
+
+    <!-- ═══════════ 第 3 级：列表页 ═══════════ -->
+    <fragment
+        android:id="@+id/listFragment"
+        android:name="com.pomodoro.legacy.ui.list.ListFragment"
+        android:label="列表">
+
+        <action
+            android:id="@+id/action_list_to_detail"
+            app:destination="@id/detailFragment" />
+    </fragment>
+
+    <!-- ═══════════ 第 4 级：详情页（带参数 itemId） ═══════════ -->
+    <fragment
+        android:id="@+id/detailFragment"
+        android:name="com.pomodoro.legacy.ui.detail.DetailFragment"
+        android:label="详情">
+
+        <argument
+            android:name="itemId"
+            app:argType="string"
+            app:nullable="false" />
+
+        <action
+            android:id="@+id/action_detail_to_comment"
+            app:destination="@id/commentFragment" />
+    </fragment>
+
+    <!-- ═══════════ 第 5 级：总结页（带参数 itemId） ═══════════ -->
+    <fragment
+        android:id="@+id/commentFragment"
+        android:name="com.pomodoro.legacy.ui.comment.CommentFragment"
+        android:label="总结">
+
+        <argument
+            android:name="itemId"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

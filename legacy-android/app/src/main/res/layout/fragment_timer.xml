@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  fragment_timer.xml — 第 0 级：番茄钟页面（启动页）
+  【传统 Java 思维】
+  这就是传统 Android 的 XML 布局方式。
+  对标 Compose: 全部用 @Composable 代码写，不需要 XML
+  对标 Flutter: 全部用 Widget 代码写，也不需要 XML
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <!-- 倒计时数字 -->
+    <TextView
+        android:id="@+id/tv_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="25:00"
+        android:textSize="48sp"
+        android:fontFamily="monospace"
+        android:textStyle="bold" />
+
+    <!-- 已完成番茄数 -->
+    <TextView
+        android:id="@+id/tv_session_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="已完成 0 个番茄"
+        android:textSize="14sp"
+        android:layout_marginTop="8dp"
+        android:textColor="#888888" />
+
+    <!-- 开始/暂停按钮 -->
+    <Button
+        android:id="@+id/btn_start"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="48dp"
+        android:text="开始"
+        android:textSize="18sp" />
+
+    <!-- 重置按钮 -->
+    <Button
+        android:id="@+id/btn_reset"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:text="重置"
+        android:enabled="false" />
+
+    <!-- 时长选择 3 按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="32dp">
+
+        <Button
+            android:id="@+id/btn_15min"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="15 分钟"
+            android:layout_marginHorizontal="8dp" />
+        <Button
+            android:id="@+id/btn_25min"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="25 分钟"
+            android:layout_marginHorizontal="8dp" />
+        <Button
+            android:id="@+id/btn_45min"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="45 分钟"
+            android:layout_marginHorizontal="8dp" />
+    </LinearLayout>
+
+    <!-- 导航演示入口 -->
+    <Button
+        android:id="@+id/btn_nav_demo"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="32dp"
+        android:text="进入 4 级导航演示" />
+
+</LinearLayout>

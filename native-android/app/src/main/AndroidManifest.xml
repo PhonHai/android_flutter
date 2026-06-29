@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:name=".PomodoroApplication"
+        android:label="番茄钟"
+        android:theme="@style/Theme.Pomodoro">
+
+        <!-- 首页（底部 4 Tab）— 启动页
+             对标 legacy/jetpack-android：首页都是带导航的 Tab 容器 -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Flutter 番茄钟 — 由首页 Tab 1 按钮启动 -->
+        <activity
+            android:name=".FlutterContainerActivity"
+            android:exported="false" />
+
+        <!-- 原生写的番茄钟列表页 -->
+        <activity android:name=".PomodoroListActivity" />
+
+    </application>
+
+</manifest>

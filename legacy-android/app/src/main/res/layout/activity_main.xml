@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  activity_main.xml — 主 Activity 布局
+  【传统 Java 思维】
+  这里只有一个 NavHostFragment，作为所有 Fragment 的容器。
+  NavHostFragment 会根据 NavController 的当前 destination 自动切换 Fragment。
+  对标 Compose 的 NavHost(navController, startDestination) { composable(...) }
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
+
+    <!-- NavHostFragment = 导航容器 -->
+    <!-- app:defaultNavHost="true" = 拦截系统返回键，自动 popBackStack -->
+    <!-- app:navGraph="@navigation/nav_graph" = 绑定导航图 -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_host_container"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:defaultNavHost="true"
+        app:navGraph="@navigation/nav_graph" />
+
+</LinearLayout>

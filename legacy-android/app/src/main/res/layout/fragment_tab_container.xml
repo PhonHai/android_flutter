@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  fragment_tab_container.xml — 首页 Tab 容器
+
+  【传统 Java 思维】
+  这就是最典型的 Android 主界面：
+    - 顶部一大片区域是 Fragment 容器
+    - 底部一排 Tab 按钮
+    - 点击 Tab 切换上面的 Fragment
+
+  对标传统 Activity 写法：
+    - 以前在主 Activity 里用 FragmentManager + FrameLayout + 底部 RadioGroup
+    - 现在为了配合 Navigation Component，把 Tab 容器抽成一个 Fragment
+    - 但这个 Fragment 内部仍然是传统手动管理 FragmentTransaction 的方式
+
+  对标 Jetpack Compose 版：
+    - 如果 Compose 做底部导航，会用 Scaffold(bottomBar = { BottomNavigation {...} })
+    - 但这里没有 Scaffold，就是 LinearLayout + FrameLayout + 一排 TextView
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!--
+      子 Fragment 容器
+      4 个 Tab 共享这个 FrameLayout，通过 hide/show 切换
+      对标：Activity 里的 R.id.fragment_container
+    -->
+    <FrameLayout
+        android:id="@+id/child_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!--
+      底部 Tab 栏
+      4 个等宽 TextView，就是最朴素的底部导航实现
+      实际项目中通常会换成 BottomNavigationView 或自定义图标
+    -->
+    <LinearLayout
+        android:id="@+id/bottom_tab_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:background="@android:color/white"
+        android:elevation="8dp">
+
+        <TextView
+            android:id="@+id/tab_pomodoro"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="番茄钟"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tab_stats"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="统计"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tab_settings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="设置"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tab_about"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="关于"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,27 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://storage.googleapis.com/download.flutter.io' }
+    }
+}
+
+rootProject.name = "PomodoroNative"
+include(":app")
+
+// Flutter Add-to-App 集成：加载 Flutter 模块作为 Gradle 子项目
+// 这会让 :flutter 项目可用，app/build.gradle.kts 中通过 project(":flutter") 引用
+setBinding(new Binding([gradle: this]))
+evaluate(new File(
+    settingsDir.parentFile,
+    "flutter_module/.android/include_flutter.groovy"
+))

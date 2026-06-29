@@ -1,0 +1,65 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'com.google.devtools.ksp'
+}
+
+android {
+    namespace 'com.pomodoro.jetpack'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.pomodoro.jetpack"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildFeatures {
+        compose true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.navigation:navigation-compose:2.9.8'
+
+    // Compose BOM — 统一管理所有 Compose 版本
+    def composeBom = platform('androidx.compose:compose-bom:2025.01.00')
+    implementation composeBom
+
+    // Compose UI
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.activity:activity-compose:1.10.0'
+
+    // ViewModel + Lifecycle
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7'
+
+    // Room 数据库
+    implementation 'androidx.room:room-runtime:2.6.1'
+    implementation 'androidx.room:room-ktx:2.6.1'
+    ksp 'androidx.room:room-compiler:2.6.1'
+
+    // Coroutines
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+
+    // Material Components（Theme.Material3 需要）
+    implementation 'com.google.android.material:material:1.12.0'
+
+    // Navigation Compose — NavHost 路由库
+    // 对标传统 Java: androidx.navigation:navigation-fragment-ktx
+    // 对标 Flutter: Navigator + go_router
+    implementation 'androidx.navigation:navigation-compose:2.8.5'
+}
