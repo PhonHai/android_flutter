@@ -1,0 +1,16 @@
+# ============================================================
+# 项目级 Skills 配置（覆盖全局 ~/.skills/skills.config.yaml）
+# Flutter + Android 混合项目
+# ============================================================
+
+# --- 项目类型 ---
+project_type: flutter
+
+# --- 平台 ---
+platform: workbuddy
+
+# --- 确认流程（车机项目严格模式）---
+confirm_first:
+  enabled: true
+  small_change_lines: 5
+  always_confirm_exts: [".dart", ".yaml", ".json", ".sh"]

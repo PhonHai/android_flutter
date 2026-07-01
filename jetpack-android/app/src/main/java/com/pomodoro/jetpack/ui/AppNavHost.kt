@@ -1,6 +1,8 @@
 package com.pomodoro.jetpack.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -129,12 +131,12 @@ import com.pomodoro.jetpack.viewmodel.TimerViewModel
  */
 /**
  * 4 级导航图
- *
+ * Compose 的设计哲学是 函数式 UI——用函数描述界面，而不是用类，所以fun AppNavHost() (Kotlin 函数)相当于nav_graph.xml (XML 文件)    →
  * @param navController 路由控制器（由调用者传入，生命周期绑定到 Activity）
  * @param onExitApp 在首页按返回键时调用（退出 App）
  */
-@Composable
-fun AppNavHost(
+@Composable //  // ← 这是 Compose 的标记，表示这个函数能生成 UI
+fun AppNavHost(  // ← 顶层函数（不隶属于任何 class）
     navController: NavHostController,
     onExitApp: () -> Unit // ()是无参数  Unit是无返回值（类似 void)
 ) {
@@ -166,17 +168,18 @@ fun AppNavHost(
         //
         // MainTabScreen 包含底部 4 个 Tab：番茄钟 | 统计 | 设置 | 关于
         // 对标 legacy-android: TabContainerFragment
-        composable("main") {
-            val ctx = androidx.compose.ui.platform.LocalContext.current
+        composable("main") {// 1.Koltin特性，参数挨得近，不用写名字默认是第一个参数route的；2.下面括号里的内容都是composable最后一个参数content函数的内容，尾随 Lambda 规则,。
+            val ctx = LocalContext.current
             val database = PomodoroDatabase.getInstance(ctx)
 
-            // 首页按返回键 → 退出 App
+            // 哪里需要拦截返回键，就在哪里写一个 BackHandler()
+            // 框架会注册一个回调给系统：“嘿，如果用户按返回键，先别动，运行我这块代码。”,比如你跳到了下一页，上一页的 BackHandler 就不在了，系统自动取消监听。
             // 对标 legacy: defaultNavHost="true" 自动拦截返回键
             // 对标 Flutter: WillPopScope
-            androidx.activity.compose.BackHandler { onExitApp() }
+            BackHandler { onExitApp() }// 首页按返回键 → 退出 App
 
             MainTabScreen(
-                onEnterNavDemo = { navController.navigate("home") },  // 进入四级导航
+                navController = navController,
                 timerViewModel = viewModel {
                     TimerViewModel(database.pomodoroDao())
                 }
@@ -184,7 +187,7 @@ fun AppNavHost(
         }
 
         // ═══════════════════════════════════════════════════════════
-        // 导航演示 第 1 级: 首页
+        // 四级导航演示 第 1 级: 首页
         // ═══════════════════════════════════════════════════════════
         composable("home") {
             HomeScreen(
@@ -231,9 +234,8 @@ fun AppNavHost(
                     nullable = false
                 }
             )
-        ) { backStackEntry ->
-            // backStackEntry = 当前页面的路由栈条目
-            // arguments?.getString("itemId") = 取出路由参数
+        ) { backStackEntry -> // NavHost 调用你的页面代码时，塞进来的当前页面上下文对象;类似Fragment.getArguments()
+             // NavHost 框架在调用这个 lambda 时，会把当前的目的地信息作为参数传进来
             // 对标传统: val itemId = arguments?.getString("itemId")
             val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
 

@@ -13,7 +13,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.pomodoro.jetpack.viewmodel.TimerStatus
 import com.pomodoro.jetpack.viewmodel.TimerViewModel
 import kotlin.math.min
@@ -47,14 +49,12 @@ import kotlin.math.min
 @Composable
 fun TimerScreen(
     /**
-     * 「进入 4 级导航演示」按钮的回调
+     * NavController — 导航控制器
      *
-     * 对标传统 Java:
-     *   btnNavDemo.setOnClickListener { navController.navigate(R.id.homeFragment) }
-     *
-     * 对标 legacy-android: TimerFragment 底部按钮
+     * TimerScreen 在 NavHost 内部，通过参数传入 navController 以执行页面跳转。
+     * 对标传统 Java: findNavController()
      */
-    onEnterNavDemo: () -> Unit = {},
+    navController: NavController,
 
     /**
      * ViewModel 实例
@@ -84,13 +84,15 @@ fun TimerScreen(
     //   在 tick 里 tvTime.setText() 手动更新
     //
     // Jetpack Compose:
-    //   collectAsState() = 订阅 StateFlow，值变化时自动重组
+    //   collectAsStateWithLifecycle() = 订阅 StateFlow + 生命周期感知
+    //   app 切后台自动停止收集 → 省 CPU，切回前台自动恢复
+    //   (collectAsState 不感知生命周期，后台仍持续重组)
     //   对标 Flutter: ref.watch(timerProvider)
     //
     // by = Kotlin 属性委托，让 StateFlow<T> 用起来像普通变量
     // 读 state = 自动获取最新值
     // 状态变化时，整个 TimerScreen() 会被重新调用（重组）
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Column = 垂直 LinearLayout
     // 对标 Flutter: Column(mainAxisAlignment: center)
@@ -272,11 +274,15 @@ fun TimerScreen(
         //   btnNavDemo.setOnClickListener {
         //       navController.navigate(R.id.homeFragment)
         //   }
+        //
+        // navController 通过参数传入，直接在点击时调用 navigate()
         OutlinedButton(
-            onClick = onEnterNavDemo,
+            onClick = { navController.navigate("home") },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("进入 4 级导航演示")
         }
+
+
     }
 }

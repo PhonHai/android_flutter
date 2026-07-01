@@ -1,16 +1,44 @@
 # ============================================================
-# 项目级 Skills 配置（覆盖全局 ~/.skills/skills.config.yaml）
-# Flutter + Android 混合项目
+# PomodoroNative — Skills 配置
+# Android + Flutter 混合项目
 # ============================================================
-
-# --- 项目类型 ---
-project_type: flutter
 
 # --- 平台 ---
 platform: workbuddy
 
-# --- 确认流程（车机项目严格模式）---
+# --- 项目类型（mobile = 加载 universal + mobile + flutter-hybrid）---
+project_type: mobile
+arch_rules_extra_conventions: [flutter-hybrid]
+
+# --- 项目记忆 ---
+project_map_file: .agent/project-map.md
+progress_file: .agent/progress.json
+locate_mode: strict
+
+# --- 确认流程 ---
 confirm_first:
   enabled: true
+  # 小改动豁免阈值：单文件 + 改动行数 <= 此值 + 不动关键文件 = 可跳过确认
   small_change_lines: 5
-  always_confirm_exts: [".dart", ".yaml", ".json", ".sh"]
+  # 必须确认的文件类型（无论改动多小）
+  always_confirm_exts: [".xml", ".gradle", ".kts", ".dart", ".yaml", ".aidl", ".sh"]
+
+# --- 闭环验证 ---
+verify_loop:
+  enabled: true
+  # 改完代码后必须执行的验证命令（留空则跳过）
+  build_cmd: ""
+  # 验证失败后的最大重试次数
+  max_retries: 2
+
+# --- harness 检查脚本开关 ---
+harness:
+  diff_guard: true      # Edit 后检查最小改动范围
+  ai_smell_check: true  # Edit 后检查 AI 味注释
+  anchor_check: false   # 仅维护 .agent/project-map.md 时开启
+
+# --- 阈值 ---
+thresholds:
+  project_map_max_lines: 1000   # .agent/project-map.md 超过则拆分
+  sync_large_change_files: 20   # sync 时超过则建议重跑 explore
+  inspect_max_files_cat: 30     # inspect.sh 单次 cat 文件数上限（防爆 token）

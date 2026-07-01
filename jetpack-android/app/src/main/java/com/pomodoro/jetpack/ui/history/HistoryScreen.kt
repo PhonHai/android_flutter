@@ -230,8 +230,10 @@ fun HistoryScreen(
         //   注意：contentPadding 是 LazyColumn 的「外边距」，不是 item 间距
         //         item 之间的细线是 HorizontalDivider() 画的，不是间距
 
+        // SimpleDateFormat = 传统 Java 日期格式化
+    // remember {} = 只在首次重组时创建，后续复用（避免 items 里每次 new）
+    val sdf = remember { SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()) }
         if (records.isEmpty()) {
-
             // ═══════════ 空状态 ═══════════
             //
             // Box = FrameLayout（层叠布局）
@@ -311,10 +313,7 @@ fun HistoryScreen(
 
                     // ═══════════ 单个记录项 ═══════════
                     //
-                    // SimpleDateFormat = 传统 Java 的日期格式化
-                    // 注意：这里在 item 工厂里 new，每个 item 都会创建一次
-                    //       实际项目应该提到外面复用（这里为了注释简洁保留）
-                    val sdf = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault())
+                    // sdf 已通过 remember {} 提到 items 外层复用
 
                     // ListItem = Material3 提供的列表项组件
                     // 自带 Material Design 规范的 padding、字体、颜色
