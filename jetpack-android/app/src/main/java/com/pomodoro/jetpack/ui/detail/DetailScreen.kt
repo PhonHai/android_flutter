@@ -1,5 +1,6 @@
 package com.pomodoro.jetpack.ui.detail
 
+import android.R
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -7,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -93,7 +95,9 @@ fun DetailScreen(
                 onClick = { onNavigate("comment/$itemId") },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text("完成总结 (第 4 级)", fontSize = 18.sp)
+                Text("完成总结 (第 4 级)",
+                    // 颜色修改
+                  ,fontSize = 18.sp)
             }
         }
     }
