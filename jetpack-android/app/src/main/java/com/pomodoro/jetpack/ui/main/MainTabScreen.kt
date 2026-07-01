@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.pomodoro.jetpack.ui.timer.TimerScreen
 import com.pomodoro.jetpack.viewmodel.TimerViewModel
 
@@ -72,7 +73,7 @@ import com.pomodoro.jetpack.viewmodel.TimerViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTabScreen(
-    onEnterNavDemo: () -> Unit,
+    navController: NavController,
     timerViewModel: TimerViewModel
 ) {
     // ═══════════════════════════════════════════════════════════
@@ -141,7 +142,7 @@ fun MainTabScreen(
         when (selectedTab) {
             // Tab 1: 番茄钟（复用 TimerScreen）
             0 -> TimerScreen(
-                onEnterNavDemo = onEnterNavDemo,
+                navController = navController,
                 viewModel = timerViewModel,
                 modifier = Modifier.padding(padding)
             )

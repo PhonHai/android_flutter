@@ -1,9 +1,9 @@
 {
   "project": "PomodoroNative",
   "created": "2026-06-28",
-  "last_sync": "2026-06-28",
+  "last_sync": "2026-06-30",
   "last_commit": null,
-  "session_count": 1,
+  "session_count": 2,
   "changes_count": 0,
   "known_unknowns": [
     "MethodChannel saveRecord/getRecords 为 TODO 占位，需接入 Room",
@@ -15,7 +15,20 @@
     "failed": 0,
     "last_verify": null
   },
-  "current_phase": "MVP 基础功能完成",
+  "current_phase": "Skills 体系搭建完成，可开始日常开发",
+  "skills": {
+    "project_skills": [
+      "project-memory", "code-locate", "arch-rules", "confirm-first",
+      "lazy-build", "coding-rules", "verify-loop", "git-commit",
+      "jetpack-compose-mvvm", "flutter-best-practices"
+    ],
+    "marketplace_skills": ["flutter-dev", "android-native-dev"],
+    "config": {
+      "project_type": "mobile",
+      "arch_rules_extra_conventions": ["flutter-hybrid"]
+    },
+    "kit_exported": "pomodoro-skills-kit.tar.gz"
+  },
   "tasks": [],
-  "notes": "项目初始化完成：Flutter 番茄钟模块 (Riverpod + sqflite + CustomPaint) + 原生 Android 壳 (Compose + FlutterFragment + MethodChannel)。Week 1 策略：sqflite 直接持久化，MethodChannel 占位。Week 2 计划：引入 Room + Paging3。"
+  "notes": "2026-06-30: Skills 体系全面搭建——10 个项目级 skill（8 行为约束 + 2 最佳实践），2 个 marketplace skill，打包为 pomodoro-skills-kit.tar.gz 可移植部署。arch-rules 已从车机版改造为项目专用 mobile 版。代码本身未变。"
 }

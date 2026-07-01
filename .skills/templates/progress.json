@@ -1,0 +1,42 @@
+{
+  "_comment": "会话间记忆 — JSON 优于 Markdown，agent 不易误改结构化数据。每个新会话的 agent 先读此文件了解上次做到哪。",
+  "_format": "v2",
+  "project": {
+    "name": "",
+    "type": "automotive",
+    "root": ""
+  },
+  "last_commit": "",
+  "last_sync": "",
+  "last_explore": "",
+  "changes_count": 0,
+  "known_unknowns": [
+    {
+      "item": "",
+      "note": "agent 识别不确定，需人工修正",
+      "status": "open"
+    }
+  ],
+  "verify_stats": {
+    "total_tasks": 0,
+    "first_pass_ok": 0,
+    "retries_needed": 0,
+    "rollbacks": 0,
+    "_comment": "trace 驱动改进用：verify 一次通过率低 → 往 .agent/project-skill.md 加规则"
+  },
+  "harness_stats": {
+    "diff_guard_hits": 0,
+    "ai_smell_hits": 0,
+    "_comment": "harness 命中率高 → 说明 agent 常违规，需加强约束"
+  },
+  "active_features": [
+    {
+      "id": "F001",
+      "name": "",
+      "status": "not_started",
+      "passes": false,
+      "test_steps": [],
+      "_comment": "参考 Anthropic: 功能列表 JSON，每项标记 passes。弱模型靠状态机推进"
+    }
+  ]
+}
