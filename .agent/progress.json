@@ -1,10 +1,10 @@
 {
   "project": "PomodoroNative",
   "created": "2026-06-28",
-  "last_sync": "2026-06-30",
-  "last_commit": null,
-  "session_count": 2,
-  "changes_count": 0,
+  "last_sync": "2026-07-04",
+  "last_commit": "8d13d21",
+  "session_count": 3,
+  "changes_count": 1,
   "known_unknowns": [
     "MethodChannel saveRecord/getRecords 为 TODO 占位，需接入 Room",
     "PomodoroListActivity HistoryListPlaceholder 需替换为 Room + Paging3",

@@ -3,6 +3,7 @@
     package="com.pomodoro.jetpack">
 
     <application
+        android:name=".PomodoroApplication"
         android:label="番茄钟(Jetpack版)"
         android:theme="@style/Theme.Material3.DayNight.NoActionBar">
 

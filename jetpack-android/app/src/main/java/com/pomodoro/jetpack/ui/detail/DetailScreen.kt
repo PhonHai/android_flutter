@@ -96,8 +96,7 @@ fun DetailScreen(
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Text("完成总结 (第 4 级)",
-                    // 颜色修改
-                  ,fontSize = 18.sp)
+                    fontSize = 18.sp)
             }
         }
     }

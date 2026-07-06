@@ -14,10 +14,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.pomodoro.jetpack.viewmodel.TimerEvent
 import com.pomodoro.jetpack.viewmodel.TimerStatus
 import com.pomodoro.jetpack.viewmodel.TimerViewModel
+import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.min
 
 /**
@@ -57,42 +58,33 @@ fun TimerScreen(
     navController: NavController,
 
     /**
-     * ViewModel 实例
-     *
-     * 默认值 viewModel() = 通过 ViewModelProvider 获取
-     * AppRoot 传入自定义实例是为了注入 DAO
-     *
-     * 对标传统 Java:
-     *   没有 ViewModel，状态全在 Activity 成员变量里
-     * 对标 Flutter:
-     *   final notifier = ref.read(timerProvider.notifier);
+     * ViewModel 实例 — 由 Hilt 注入（外部传入）
      */
-    viewModel: TimerViewModel = viewModel(),
+    viewModel: TimerViewModel,
 
     /**
      * 布局修饰符
-     *
-     * 由 MainTabScreen 传入 Scaffold padding，确保内容不被底部导航栏遮挡。
-     * 对标 legacy: fragment 容器自动处理 inset
      */
     modifier: Modifier = Modifier
 ) {
     // ===== 订阅 ViewModel 状态 =====
-    //
-    // 传统 Java:
-    //   在 onCreate 里 findViewById 找到控件
-    //   在 tick 里 tvTime.setText() 手动更新
-    //
-    // Jetpack Compose:
-    //   collectAsStateWithLifecycle() = 订阅 StateFlow + 生命周期感知
-    //   app 切后台自动停止收集 → 省 CPU，切回前台自动恢复
-    //   (collectAsState 不感知生命周期，后台仍持续重组)
-    //   对标 Flutter: ref.watch(timerProvider)
-    //
-    // by = Kotlin 属性委托，让 StateFlow<T> 用起来像普通变量
-    // 读 state = 自动获取最新值
-    // 状态变化时，整个 TimerScreen() 会被重新调用（重组）
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // ===== Channel 一次性事件：计时完成 → Snackbar =====
+    // 【面试题44】Channel 不粘性，旋转屏幕不会重复弹 Snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is TimerEvent.Finished -> {
+                    snackbarHostState.showSnackbar(
+                        message = "计时完成！已完成 ${state.completedSessions} 个番茄",
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
+        }
+    }
 
     // Column = 垂直 LinearLayout
     // 对标 Flutter: Column(mainAxisAlignment: center)
@@ -250,7 +242,7 @@ fun TimerScreen(
             // 对标传统 Java: for (int min : new int[]{15, 25, 45}) { ... }
             listOf(1, 2, 3).forEach { minutes ->
                 FilterChip(
-                    selected = state.totalSeconds == minutes,
+                    selected = state.totalSeconds == minutes * 10,
                     onClick = {
                         // 只在非运行状态时允许改时长
                         if (state.status == TimerStatus.IDLE ||

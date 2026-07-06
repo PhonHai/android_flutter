@@ -1,6 +1,6 @@
 # PomodoroNative — 项目代码地图
 
-> **最后更新**: 2026-06-30 · 三套对照学习 + 4 级导航 + 首页 Tab 改造 + 10 Skills 体系
+> **最后更新**: 2026-07-04 · git commit: 8d13d21 · 三套对照学习 + 4 级导航 + 首页 Tab 改造 + 10 Skills 体系（已迁移至 TRAE 原生格式）
 >
 > 项目类型: **三套独立 Android App（对照学习）+ Flutter 模块 (Add-to-App)**
 >
@@ -58,7 +58,8 @@
 │       ├── model/PomodoroEntity.kt      # Room @Entity
 │       ├── viewmodel/
 │       │   ├── TimerViewModel.kt        # ViewModel + StateFlow + Coroutines
-│       │   └── TimerUiState.kt          # data class 不可变状态
+│       │   ├── TimerUiState.kt          # data class 不可变状态
+│       │   └── HistoryViewModel.kt      # 历史记录 ViewModel（Flow + stateIn）
 │       └── ui/
 │           ├── MainActivity.kt          # ComponentActivity + setContent { AppNavHost() }
 │           ├── AppNavHost.kt            # Navigation Compose 路由表
@@ -103,6 +104,19 @@
             ├── list/list_page.dart
             ├── detail/detail_page.dart
             └── comment/comment_page.dart
+│
+├── .trae/skills/                    # TRAE 原生 Skills 工作流（10 个 Skill）
+│   ├── project-memory/              # 项目记忆（explore/sync）+ scripts/
+│   ├── code-locate/                 # 代码定位 + references/
+│   ├── arch-rules/                  # 架构约束 + conventions/（universal/mobile/flutter-hybrid）
+│   ├── confirm-first/               # 改前确认 + references/
+│   ├── lazy-build/                  # 懒人阶梯（lite/full/ultra）
+│   ├── coding-rules/                # 代码纪律 + references/
+│   ├── verify-loop/                 # 闭环验证 + references/
+│   ├── git-commit/                  # Conventional Commits 规范提交
+│   ├── jetpack-compose-mvvm/        # Compose + MVVM 最佳实践
+│   └── flutter-best-practices/      # Flutter 架构最佳实践
+└── .skills/                         # 原 workbuddy Skills 目录（保留兼容）
 ```
 
 ---
@@ -408,6 +422,7 @@ MainActivity
 
 | 日期 | 类型 | 描述 |
 |------|------|------|
+| 2026-07-04 | 迁移 | 10 个 Skill 从 workbuddy .skills/ 迁移至 TRAE 原生 .trae/skills/ 格式（SKILL.md + frontmatter） |
 | 2026-06-28 | 初始化 | 创建 flutter_module + native-android，Flutter Add-to-App MVP |
 | 2026-06-28 | 新增 | 创建 legacy-android（Java/XML）和 jetpack-android（Compose/MVVM）两套对照代码 |
 | 2026-06-28 | 功能 | 三套项目各实现 4 级导航（Navigation Component / NavHost / Navigator.push） |

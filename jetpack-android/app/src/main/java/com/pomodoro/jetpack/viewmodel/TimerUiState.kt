@@ -43,8 +43,8 @@ enum class TimerStatus { IDLE, RUNNING, PAUSED, FINISHED }
  */
 data class TimerUiState(
     val status: TimerStatus = TimerStatus.IDLE,
-    val totalSeconds: Int = 1 * 10,          // 默认 25 分钟
-    val remainingSeconds: Int = 1 * 10,
+    val totalSeconds: Int = 10,                 // 默认 10 秒（演示用）
+    val remainingSeconds: Int = 10,
     val completedSessions: Int = 0
 ) {
     /** 倒计时进度 [0.0, 1.0] — 对标 Flutter TimerState.progress */

@@ -6,69 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * ═══════════════════════════════════════════════════════════
- * 主 Activity — NavHost 宿主
+ * 主 Activity — NavHost 宿主 + Hilt 注入入口
  * ═══════════════════════════════════════════════════════════
  *
- * 【对比之前的 if/else 方案】
- *
- * 之前（if/else）:
- *   setContent {
- *     var page by remember { mutableStateOf("timer") }
- *     when(page) {
- *       "timer" -> TimerScreen(onViewHistory = { page = "history" })
- *       "history" -> HistoryScreen(onBack = { page = "timer" })
- *     }
- *   }
- *
- * 现在（NavHost）:
- *   setContent {
- *     val navController = rememberNavController()
- *     AppNavHost(navController, onExitApp = { finish() })
- *   }
- *
- * 区别:
- *   1. 不再需要手动维护 page 变量 → NavController 自动管理
- *   2. 系统返回键自动 popBackStack → if/else 方案做不到
- *   3. 路由参数自动传递 → "detail/{itemId}" 优雅传值
- *   4. 路由表集中在 AppNavHost.kt → 结构清晰
- *
- * 【传统 Java 思维 → Compose 映射】
- *
- * 传统 Java:
- *   public class MainActivity extends AppCompatActivity {
- *     protected void onCreate(...) {
- *       setContentView(R.layout.activity_main);
- *       // activity_main.xml 里有个 NavHostFragment
- *       // <fragment android:name="...NavHostFragment"
- *       //           app:navGraph="@navigation/nav_graph"/>
- *       NavController nav = findNavController(R.id.nav_host);
- *     }
- *   }
- *
- * Jetpack Compose:
- *   class MainActivity : ComponentActivity() {
- *     override fun onCreate(...) {
- *       setContent {
- *         val navController = rememberNavController()  // ← 创建 NavController
- *         AppNavHost(navController, ...)               // ← 装载路由图
- *       }
- *     }
- *   }
- *
- * 对比 Flutter:
- *   MaterialApp(
- *     home: HomePage(),
- *     onGenerateRoute: (settings) {
- *       switch (settings.name) {
- *         case 'list': return MaterialPageRoute(builder: (_) => ListPage());
- *         case 'detail': return MaterialPageRoute(builder: (_) => DetailPage(settings.arguments));
- *       }
- *     },
- *   )
+ * @AndroidEntryPoint: Hilt 注入标记，使 Activity 可被 Hilt 管理。
+ * 所有 @HiltViewModel 标记的 ViewModel 从此 Activity 的容器获取依赖。
  */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
