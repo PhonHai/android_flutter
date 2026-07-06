@@ -1,12 +1,12 @@
 # PomodoroNative — 项目代码地图
 
-> **最后更新**: 2026-07-04 · git commit: 8d13d21 · 三套对照学习 + 4 级导航 + 首页 Tab 改造 + 10 Skills 体系（已迁移至 TRAE 原生格式）
+> **最后更新**: 2026-07-06 · git commit: 5fe7667 · 三套对照学习 + 4 级导航 + 首页 Tab 改造 + Hilt+Retrofit+DataStore 架构升级 + 10 Skills 体系
 >
 > 项目类型: **三套独立 Android App（对照学习）+ Flutter 模块 (Add-to-App)**
 >
 > 技术栈: 
 > - `legacy-android/`: Java + XML + SQLiteOpenHelper + Navigation Component
-> - `jetpack-android/`: Kotlin + Jetpack Compose + MVVM + Room + Navigation Compose
+> - `jetpack-android/`: Kotlin + Jetpack Compose + MVVM + Room + Hilt + Retrofit + DataStore + Navigation Compose
 > - `native-android/`: Kotlin + Jetpack Compose + Flutter AAR (Add-to-App) + Navigation Compose
 > - `flutter_module/`: Dart + Flutter + Riverpod + sqflite
 
@@ -50,21 +50,40 @@
 │       ├── layout/ (fragment_*.xml)           # 10 个 XML 布局
 │       └── navigation/nav_graph.xml           # Navigation Component 导航图
 │
-├── jetpack-android/                 # Kotlin + Compose + MVVM（自含计时器）
+├── jetpack-android/                 # Kotlin + Compose + MVVM + Hilt + Retrofit（自含计时器）
 │   └── app/src/main/java/com/pomodoro/jetpack/
+│       ├── PomodoroApplication.kt      # @HiltAndroidApp 入口
 │       ├── data/
 │       │   ├── PomodoroDao.kt           # Room DAO
-│       │   └── PomodoroDatabase.kt      # Room Database
+│       │   ├── PomodoroDatabase.kt      # Room Database
+│       │   ├── SettingsDataStore.kt     # DataStore 键值存储（替代 SP）
+│       │   └── repository/
+│       │       ├── TimerRepository.kt   # 番茄钟记录 Repository
+│       │       └── FileRepository.kt    # NAS 文件 Repository
+│       ├── di/
+│       │   └── AppModule.kt            # Hilt DI 模块（OkHttp/Retrofit/Room/DAO）
 │       ├── model/PomodoroEntity.kt      # Room @Entity
+│       ├── network/
+│       │   ├── NasApiService.kt         # Retrofit API 接口
+│       │   ├── NasFileResponse.kt       # 网络响应模型
+│       │   ├── OkHttpClientProvider.kt  # OkHttp 配置 + Mock 拦截器
+│       │   ├── MockNasInterceptor.kt    # NAS Mock 数据拦截器
+│       │   └── Result.kt                # sealed class 网络请求封装
 │       ├── viewmodel/
-│       │   ├── TimerViewModel.kt        # ViewModel + StateFlow + Coroutines
+│       │   ├── TimerViewModel.kt        # @HiltViewModel + Repository + StateFlow
 │       │   ├── TimerUiState.kt          # data class 不可变状态
-│       │   └── HistoryViewModel.kt      # 历史记录 ViewModel（Flow + stateIn）
+│       │   ├── HistoryViewModel.kt      # 历史记录 ViewModel（Flow + stateIn）
+│       │   ├── FileViewModel.kt         # NAS 文件列表 ViewModel
+│       │   ├── SettingsViewModel.kt     # 设置 ViewModel（DataStore）
+│       │   └── TransferViewModel.kt     # 传输列表 ViewModel（Flow 进度）
 │       └── ui/
-│           ├── MainActivity.kt          # ComponentActivity + setContent { AppNavHost() }
+│           ├── MainActivity.kt          # @AndroidEntryPoint + setContent { AppNavHost() }
 │           ├── AppNavHost.kt            # Navigation Compose 路由表
-│           ├── main/MainTabScreen.kt    # 首页 4 Tab 容器 (NavigationBar)
+│           ├── main/MainTabScreen.kt    # 首页 4 Tab (番茄钟/文件/设置/传输)
+│           ├── main/FileListScreen.kt   # Tab2: NAS 文件列表
 │           ├── timer/TimerScreen.kt     # Tab1: 番茄钟 (Canvas 环形 + Coroutines delay)
+│           ├── settings/SettingsScreen.kt # Tab3: 设置（DataStore 读写）
+│           ├── transfer/TransferListScreen.kt # Tab4: 传输列表（Flow 进度）
 │           ├── home/HomeScreen.kt       # 第 2 级：导航演示首页
 │           ├── list/ListScreen.kt       # 第 3 级：列表页
 │           ├── detail/DetailScreen.kt   # 第 4 级：详情页
@@ -133,14 +152,20 @@
 | Tab 管理器 | `TabContainerFragment.java` | `ChildFragmentManager` + `hide/show` |
 | 导航方案 | `nav_graph.xml` | `Navigation Component XML 版` |
 
-### jetpack-android（现代 MVVM）
+### jetpack-android（现代 MVVM + Hilt + Retrofit）
 | 入口 | 文件 | 说明 |
 |------|------|------|
-| `MainActivity` | `jetpack-android/.../MainActivity.kt` | ComponentActivity，`setContent { AppNavHost() }` |
+| `PomodoroApplication` | `PomodoroApplication.kt` | `@HiltAndroidApp`，创建 Application 级 DI 容器 |
+| `MainActivity` | `jetpack-android/.../MainActivity.kt` | `@AndroidEntryPoint`，`setContent { AppNavHost() }` |
 | startDestination | `AppNavHost.kt` | `"main"`（底部 4 Tab 首页） |
-| 计时器 | `TimerViewModel.kt` | `Coroutines delay` + `StateFlow`，自含计时 |
-| Tab 管理器 | `MainTabScreen.kt` | `mutableIntStateOf` + `when` 分支切换 |
+| 计时器 | `TimerViewModel.kt` | `@HiltViewModel` + `TimerRepository` + `StateFlow` |
+| 文件列表 | `FileViewModel.kt` | `@HiltViewModel` + `FileRepository` → Retrofit → Mock NAS |
+| 设置 | `SettingsViewModel.kt` | `@HiltViewModel` + `SettingsDataStore`（DataStore Flow） |
+| 传输列表 | `TransferViewModel.kt` | Flow 模拟上传/下载进度 |
+| Tab 管理器 | `MainTabScreen.kt` | `mutableStateOf` + `when` 分支切换 |
 | 导航方案 | `AppNavHost.kt` | `Navigation Compose 代码版` |
+| DI 模块 | `di/AppModule.kt` | `@Provides` OkHttp/Retrofit/NasApiService/Room/DAO |
+| 网络层 | `network/` | Retrofit + OkHttp + MockNasInterceptor + sealed Result |
 
 ### native-android（Flutter Add-to-App 混合）
 | 入口 | 文件 | 说明 |
@@ -187,22 +212,23 @@ App 启动 → NavHostFragment (startDestination: tabContainerFragment)
 ### 4.2 jetpack-android 路由链路
 
 ```
-App 启动 → MainActivity
-  └── AppNavHost (startDestination: "main")
-        └── MainTabScreen
-              ├── [Tab 1] TimerScreen 番茄钟（Canvas 环形进度+Coroutines delay）
-              │     │  点击「进入 4 级导航演示」
-              │     │  → navigate("home")  ← 全屏替换 MainTabScreen
-              │     │
-              │     └──→ HomeScreen（第 2 级）
-              │           → "list" → ListScreen（第 3 级）
-              │             → "detail/{itemId}" → DetailScreen（第 4 级）
-              │               → "comment/{itemId}" → CommentScreen（第 5 级）
-              │                   ├── 返回详情页 → popBackStack()
-              │                   └── 回到首页 → popBackStack("main", false)
-              ├── [Tab 2] PlaceholderContent（占位）
-              ├── [Tab 3] PlaceholderContent（占位）
-              └── [Tab 4] PlaceholderContent（占位）
+App 启动 → PomodoroApplication (@HiltAndroidApp DI 容器初始化)
+  → MainActivity (@AndroidEntryPoint)
+    └── AppNavHost (startDestination: "main")
+          └── MainTabScreen (hiltViewModel 注入 TimerViewModel)
+                ├── [Tab 1] TimerScreen 番茄钟（Canvas 环形进度+Coroutines delay）
+                │     │  点击「进入 4 级导航演示」
+                │     │  → navigate("home")  ← 全屏替换 MainTabScreen
+                │     │
+                │     └──→ HomeScreen（第 2 级）
+                │           → "list" → ListScreen（第 3 级）
+                │             → "detail/{itemId}" → DetailScreen（第 4 级）
+                │               → "comment/{itemId}" → CommentScreen（第 5 级）
+                │                   ├── 返回详情页 → popBackStack()
+                │                   └── 回到首页 → popBackStack("main", false)
+                ├── [Tab 2] FileListScreen（NAS 文件列表，Retrofit+Repository+sealed Result）
+                ├── [Tab 3] SettingsScreen（DataStore 设置页，Flow 自动更新）
+                └── [Tab 4] TransferListScreen（传输列表，Flow 进度模拟）
 ```
 
 ### 4.3 native-android 路由链路
@@ -264,20 +290,21 @@ MainActivity
 - 生命周期：ChildFragmentManager 隔离于 NavController
 - 导航关系：四级导航时 NavController 全屏替换 TabContainerFragment
 
-### jetpack-android（Compose mutableIntStateOf）
+### jetpack-android（Compose + Hilt + mutableStateOf）
 
 ```
-MainActivity
-  └── AppNavHost (startDestination: "main")
-        └── MainTabScreen
-              ├── var selectedTab by remember { mutableIntStateOf(0) }
-              ├── Scaffold(bottomBar = NavigationBar { ... })
-              └── when(selectedTab) {
-                    0 → TimerScreen(Canvas + Coroutines)
-                    1 → PlaceholderContent
-                    2 → PlaceholderContent
-                    3 → PlaceholderContent
-                  }
+PomodoroApplication (@HiltAndroidApp)
+  └── MainActivity (@AndroidEntryPoint)
+        └── AppNavHost (startDestination: "main")
+              └── MainTabScreen
+                    ├── var selectedTab by remember { mutableStateOf(0) }
+                    ├── Scaffold(bottomBar = NavigationBar { ... })
+                    └── when(selectedTab) {
+                          0 → TimerScreen (hiltViewModel, Canvas + Coroutines)
+                          1 → FileListScreen (hiltViewModel, Retrofit + sealed Result)
+                          2 → SettingsScreen (hiltViewModel, DataStore Flow)
+                          3 → TransferListScreen (hiltViewModel, Flow 进度)
+                        }
 ```
 
 ### native-android（Compose + Flutter AAR）
@@ -305,7 +332,8 @@ MainActivity
 |------|---------------|-----------------|----------------|----------------|
 | 语言 | Java | Kotlin | Kotlin | Dart |
 | UI 层 | XML + findViewByID | Compose @Composable | Compose + Flutter Fragment | Widget tree |
-| 状态持有 | TimerFragment 成员变量（mutable） | TimerViewModel + `StateFlow<TimerUiState>` | Flutter 模块内部（不在原生侧） | `TimerNotifier` + `TimerState` |
+| 状态持有 | TimerFragment 成员变量（mutable） | `@HiltViewModel` + `StateFlow<TimerUiState>` | Flutter 模块内部（不在原生侧） | `TimerNotifier` + `TimerState` |
+| 依赖注入 | 无（手动 new） | **Hilt**（`@HiltAndroidApp` + `@HiltViewModel` + `AppModule`） | 无 | Riverpod `ProviderScope` |
 | 不可变性 | 直接修改成员 | `data class.copy()` | Flutter 端 `copyWith()` | `copyWith()` |
 | UI 更新 | `tvTime.setText()` 手动 | Compose 自动重组 | Flutter Widget 自动重建 | Widget 自动重建 |
 | 倒计时 | `Handler.postDelayed` | `Coroutines delay` | `Timer.periodic`（在 Flutter 内） | `Timer.periodic` |
@@ -323,6 +351,10 @@ MainActivity
 | 查询 | `db.rawQuery()` | `@Query("SELECT * FROM ...")` | `db.query()`（Flutter 内） | `db.query()` |
 | 异步 | 不推荐主线程 | `Flow<List<...>>` 自动更新 | `Future<List<Map>>` | `Future<List<Map>>` |
 | 原生侧存储 | 无（全部 Java SQLite） | Room 原生 | MethodChannel 占位 | sqflite 在 Flutter 侧 |
+| 键值存储 | `SharedPreferences` | **DataStore**（Flow 读 + suspend 写） | 无 | 无 |
+| 网络层 | 无 | **Retrofit + OkHttp + Mock 拦截器** | 无 | 无 |
+| Repository | 无 | **TimerRepository / FileRepository**（Hilt @Singleton） | 无 | 无 |
+| 请求封装 | 无 | **sealed class Result**（Success/Error/Loading） | 无 | 无 |
 
 ---
 
@@ -411,7 +443,7 @@ MainActivity
 | 子项目 | 语言 | 文件数 | 说明 |
 |--------|------|--------|------|
 | legacy-android | Java + XML | 12 Java + 10 XML | 传统 Java 版，含底部 4 Tab + 5 级导航 |
-| jetpack-android | Kotlin | ~15 | Jetpack Compose + MVVM + Room |
+| jetpack-android | Kotlin | ~28 | Compose + MVVM + Room + Hilt + Retrofit + DataStore |
 | native-android | Kotlin | ~12 | Flutter Add-to-App 壳 + 4 级导航 |
 | flutter_module | Dart | ~12 | Flutter + Riverpod + sqflite（AAR 打包） |
 
@@ -422,6 +454,8 @@ MainActivity
 
 | 日期 | 类型 | 描述 |
 |------|------|------|
+| 2026-07-06 | 文档 | 更新项目地图：反映 Hilt+Retrofit+DataStore 架构升级 |
+| 2026-07-05 | 功能 | jetpack-android 集成 Hilt DI + Retrofit 网络层 + DataStore + Repository 模式，新增文件/设置/传输 3 个页面 |
 | 2026-07-04 | 迁移 | 10 个 Skill 从 workbuddy .skills/ 迁移至 TRAE 原生 .trae/skills/ 格式（SKILL.md + frontmatter） |
 | 2026-06-28 | 初始化 | 创建 flutter_module + native-android，Flutter Add-to-App MVP |
 | 2026-06-28 | 新增 | 创建 legacy-android（Java/XML）和 jetpack-android（Compose/MVVM）两套对照代码 |
