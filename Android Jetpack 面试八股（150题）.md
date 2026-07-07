@@ -185,6 +185,28 @@
 149. [代码审查要点与规范](#test-04)
 150. [崩溃监控与 APM 体系](#test-05)
 
+### 八、Jetpack Compose（20题）★JD 100% 必考
+151. [声明式 UI 与命令式 UI 的区别](#compose-01)
+152. [@Composable 是什么？重组（Recomposition）原理](#compose-02)
+153. [State / MutableState 与 remember 的作用](#compose-03)
+154. [remember 与 rememberSaveable 的区别](#compose-04)
+155. [derivedStateOf 的作用与场景](#compose-05)
+156. [状态提升（State Hoisting）是什么？为什么？](#compose-06)
+157. [Modifier 是什么？常用 Modifier 有哪些](#compose-07)
+158. [LaunchedEffect / DisposableEffect / SideEffect / rememberCoroutineScope 区别](#compose-08)
+159. [CompositionLocal 是什么？什么场景用](#compose-09)
+160. [重组（Recomposition）优化：key、stability、跳过](#compose-10)
+161. [Compose 快照系统（Snapshot / MutableState 原理）](#compose-11)
+162. [Compose 与 View 互操作（AndroidView / ComposeView）](#compose-12)
+163. [LazyColumn / LazyRow 的 key 与 item 复用](#compose-13)
+164. [Compose 动画：animate*AsState / AnimatedVisibility](#compose-14)
+165. [Compose 主题与 Material 3](#compose-15)
+166. [Compose 性能优化：重组范围与稳定性](#compose-16)
+167. [Compose 与 ViewModel 结合（viewModel() / state 收集）](#compose-17)
+168. [Navigation Compose 的特点](#compose-18)
+169. [Compose 的插槽 API（Slot API）与自定义布局](#compose-19)
+170. [Compose 与 View 体系在面试中的对比](#compose-20)
+
 ---
 
 ## 一、Kotlin 核心（30题）
@@ -8922,6 +8944,267 @@ sendBroadcast(intent)
 // 接收（动态注册）
 val filter = IntentFilter("com.example.app.CUSTOM_ACTION")
 registerReceiver(myReceiver, filter)
+
+---
+
+## 八、Jetpack Compose（20题）★JD 100% 必考
+
+> 说明：JD 中「Jetpack Compose（声明式 UI）」为 100% 必选项，且本项目（jetpack-android）全部用 Compose 编写。原一至七章为 View 体系旧库八股，本章补齐声明式 UI 核心考点。
+
+### <a id="compose-01"></a>151. 声明式 UI 与命令式 UI 的区别
+
+**标准回答：**
+
+| 维度 | 命令式（XML + View） | 声明式（Compose） |
+|------|---------------------|-------------------|
+| 思路 | 先建 UI 树，再手动 `findViewById` 改属性 | 用函数描述「当前状态对应的 UI」，状态变则 UI 自动重组 |
+| 更新方式 | 命令式 `tv.text = "x"` 手动改 | 状态（`State`）变化自动触发重组 |
+| 痛点 | 易忘记刷新、状态不同步、模板代码多 | 唯一可信源（Single Source of Truth）保证一致 |
+
+**面试高频：** 一句话总结——命令式是「告诉 UI 怎么变」，声明式是「描述 UI 现在长什么样，剩下的交给框架」。
+
+### <a id="compose-02"></a>152. @Composable 是什么？重组（Recomposition）原理
+
+**标准回答：**
+
+- `@Composable` 是编译器插件识别的注解，标记一个**可组合函数**，它会在编译期被织入 `Composer` 调用，把 UI 节点记录到组合树（Composition）中。
+- **重组（Recomposition）**：当 Composable 读取的 `State` 变化时，Compose 只会重新执行**读取了该 State 的 Composable**（及其子树），而不是整棵 UI 树。
+- 重组是**乐观的、可丢弃的**：如果输入在同一帧内又变了，上次未完成的重组会被丢弃重来，因此 Composable 应当是**无副作用、幂等**的。
+
+```kotlin
+@Composable
+fun Counter() {
+    var count by remember { mutableStateOf(0) } // 读 State → 变化触发重组
+    Button(onClick = { count++ }) { Text("点击 $count") }
+}
+```
+
+**面试高频：** 重组 ≠ 重建 Activity；重组是轻量的函数重执行，范围由「谁读了变化的 State」决定。
+
+### <a id="compose-03"></a>153. State / MutableState 与 remember 的作用
+
+**标准回答：**
+
+- `MutableState<T>` 是 Compose 的状态容器，`value` 变化会通知所有读取它的 Composable 重组。
+- `remember { ... }` 把计算结果**缓存到组合树中**，避免每次重组都重新创建。若不用 `remember`，每次重组都会新建 `mutableStateOf`，状态无法保留。
+- `by` 委托（`var count by remember { mutableStateOf(0) }`）是语法糖，等价于 `count = state.value`。
+
+**面试高频：** `remember` 解决「重组时状态丢失」；`mutableStateOf` 解决「状态变化通知重组」；两者配合才有响应式。
+
+### <a id="compose-04"></a>154. remember 与 rememberSaveable 的区别
+
+**标准回答：**
+
+- `remember`：状态存在**组合树**中，**配置变更（如旋转屏幕）后重组会丢失**（虽然 ViewModel 还在，但局部 UI 状态会重置）。
+- `rememberSaveable`：基于 `Bundle` 机制（或自定义 `Saver`），**能跨配置变更（旋转、进程重建）保留**，等价于 View 体系的 `onSaveInstanceState`。
+
+```kotlin
+var name by rememberSaveable { mutableStateOf("") } // 旋转屏幕后仍在
+```
+
+**面试高频：** 只跟 UI 相关的瞬时状态用 `remember`；需要跨旋转保留的用 `rememberSaveable`。大量数据应放 ViewModel。
+
+### <a id="compose-05"></a>155. derivedStateOf 的作用与场景
+
+**标准回答：**
+
+- `derivedStateOf { ... }` 从一个或多个 `State` **派生**出新状态，只有当**派生结果真正变化**时才触发重组，避免无意义的重组。
+- 典型场景：在长列表里根据 `lazyListState.firstVisibleItemIndex > 0` 决定是否显示「回到顶部」按钮——若直接用 `firstVisibleItemIndex > 0`，每滚动一项都重组；用 `derivedStateOf` 只在「0 → 非0」跳变时重组一次。
+
+```kotlin
+val showButton by remember {
+    derivedStateOf { listState.firstVisibleItemIndex > 0 }
+}
+```
+
+**面试高频：** `derivedStateOf` = 「把高频变化的状态，降频成低频的布尔/派生值」，是 Compose 性能优化关键点。
+
+### <a id="compose-06"></a>156. 状态提升（State Hoisting）是什么？为什么？
+
+**标准回答：**
+
+- 状态提升：把可变状态从子 Composable **上移到调用方**，子 Composable 只接收 `value` 和 `onValueChange` 回调，变成**无状态（stateless）**组件。
+- 好处：① 单一可信源 ② 子组件可复用、可测试 ③ 便于在 ViewModel 中统一管理状态 ④ 符合单向数据流（UDF）。
+
+```kotlin
+@Composable
+fun Parent() {
+    var text by rememberSaveable { mutableStateOf("") }
+    TextField(value = text, onValueChange = { text = it }) // 状态在父，子无状态
+}
+```
+
+**面试高频：** 状态提升是 Compose 实现 MVI/MVVM 的基础——UI 状态来自 ViewModel，事件回传 ViewModel。
+
+### <a id="compose-07"></a>157. Modifier 是什么？常用 Modifier 有哪些
+
+**标准回答：**
+
+- `Modifier` 是一个**不可变的链式配置对象**，用来修饰 Composable 的尺寸、布局、背景、点击事件、语义等。链式的顺序**影响最终效果**（如 `padding` 在 `background` 前后的视觉差异）。
+- 常用：`fillMaxWidth()`、`height()`、`padding()`、`background()`、`clickable {}`、`weight()`（Row/Column 内）、`size()`、`align()`、`clip()`、`border()`、`verticalScroll()`。
+
+**面试高频：** Modifier 顺序敏感；`weight` 只在 `RowScope/ColumnScope` 内可用；自定义 Modifier 可用 `Modifier.drawBehind {}` 等。
+
+### <a id="compose-08"></a>158. LaunchedEffect / DisposableEffect / SideEffect / rememberCoroutineScope 区别
+
+**标准回答：**
+
+| API | 触发时机 | 用途 |
+|-----|---------|------|
+| `LaunchedEffect(key)` | 进入组合或 key 变化时启动协程，退出组合自动取消 | 发起一次性请求、收集 Flow |
+| `DisposableEffect(key)` | 进入组合执行，退出时执行 `onDispose` | 注册/解注册监听（如 LifecycleObserver） |
+| `SideEffect {}` | **每次重组后**都执行 | 把 Compose 状态同步给非 Compose 对象（如统计埋点） |
+| `rememberCoroutineScope()` | 返回绑定组合生命周期的 CoroutineScope | 在事件回调（如 onClick）里 `launch` 协程 |
+
+```kotlin
+LaunchedEffect(Unit) { viewModel.load() } // 进入时加载一次
+val scope = rememberCoroutineScope()
+Button(onClick = { scope.launch { /* 点击触发协程 */ } })
+```
+
+**面试高频：** 不要在 Composable 函数体里直接 `CoroutineScope()` 或挂起——用 `LaunchedEffect`；需要跨重组持有 scope 用 `rememberCoroutineScope`。
+
+### <a id="compose-09"></a>159. CompositionLocal 是什么？什么场景用
+
+**标准回答：**
+
+- `CompositionLocal` 让数据**隐式沿组合树向下传递**，子树中任何 Composable 都能用 `current` 读取，无需层层传参。
+- 系统内置：`MaterialTheme`（颜色/字体）、`LocalContext`、`LocalLifecycleOwner`。
+- 自定义：`CompositionLocalProvider(LocalXXX provides value) { ... }`。
+- 适用：全局性、与「在哪调用」无关的数据（如主题、上下文）；**不要滥用**，否则数据流向不清晰，优先用显式参数/状态提升。
+
+**面试高频：** `CompositionLocal` ≈ 声明式世界的「依赖注入 / 隐式上下文」，但能显式传参就别用它。
+
+### <a id="compose-10"></a>160. 重组（Recomposition）优化：key、stability、跳过
+
+**标准回答：**
+
+- **Key**：在 `LazyColumn`/`Row`/`Column` 的子项或 `items()` 中用稳定 key，帮助 Compose 识别「同一项」，避免错位重组与状态错乱。
+- **Stability（稳定性）**：Compose 编译器会推断类型是否稳定（不可变 + 所有字段稳定）。**不稳定类型**每次都会被强制重组；用 `@Stable` 或 `@Immutable` 注解不可变数据类可避免。含 `var`、接口、泛型 `List` 的类型常被判定不稳定，建议用 `@Immutable data class` 或 `ImmutableList`。
+- **跳过**：参数未变的 Composable 会被跳过（skip）；参数包含不稳定引用则无法跳过。
+
+**面试高频：** 性能优化的核心 = 减少重组范围 + 保证参数稳定。用 `key` + `@Stable/@Immutable` + 避免在 Composable 里创建新对象（如 `{}` 匿名对象）。
+
+### <a id="compose-11"></a>161. Compose 快照系统（Snapshot / MutableState 原理）
+
+**标准回答：**
+
+- Compose 基于 **Snapshot 快照系统**实现状态一致性：每次重组都在一个快照事务中读 `MutableState.value`。
+- 写 `value` 时，Snapshot 记录变更；框架在合适的时机（帧边界）触发「受影响的 Composable 重组」，并保证组合树最终一致。
+- 这解释了为什么 Compose 能「乐观丢弃」重组——快照未提交前可回滚。
+
+**面试高频：** 不用深究源码，理解「State 写入 → 快照通知 → 定向重组」这条链路即可；这也是 Compose 比手动 `setText` 不易出 bug 的原因。
+
+### <a id="compose-12"></a>162. Compose 与 View 互操作（AndroidView / ComposeView）
+
+**标准回答：**
+
+- **Compose 中嵌入 View**：用 `AndroidView(factory = { context -> TextView(context) })`，适合用尚未 Compose 化的三方控件（如 MapView、ExoPlayer 的 PlayerView）。
+- **View 中嵌入 Compose**：`LinearLayout` 里加 `<androidx.compose.ui.platform.ComposeView>`，`setContent { Composable() }`。
+- 现有项目（如本 IoT App）往往是混合态：原生壳用 View，Flutter 模块外的新页面用 Compose——互操作是迁移桥梁。
+
+**面试高频：** 混合架构下「Compose ↔ View ↔ Flutter」三层互操作是真实考点，能讲清 `AndroidView` 与 `ComposeView` 即可。
+
+### <a id="compose-13"></a>163. LazyColumn / LazyRow 的 key 与 item 复用
+
+**标准回答：**
+
+- `LazyColumn` 是 Compose 版的 `RecyclerView`，**按需组合可见项**，不在屏幕上的项不组合，内存友好。
+- `items(items, key = { it.id }) { item -> ... }`：显式 key 让 Compose 在数据重排时正确复用/移动项，避免重组错乱和动画跳变。
+- 不写 key 时默认用索引，列表增删/排序会导致状态错位（如输入框内容跑到别的项）。
+
+**面试高频：** 对标 RecyclerView 的 `DiffUtil` + `setHasStableIds`；`key` = 稳定唯一标识。
+
+### <a id="compose-14"></a>164. Compose 动画：animate*AsState / AnimatedVisibility
+
+**标准回答：**
+
+- `animate*AsState`：把某个值（Float/Color/Dp/Size）变成「带动画的 State」，值变化时自动过渡，配合重组平滑渲染。
+- `AnimatedVisibility(visible) { ... }`：控制子 Composable 的进入/退出动画（`fadeIn`/`slideInVertically` 等）。
+- `Crossfade`：在两个 UI 间淡入淡出；`updateTransition` 管理多状态联动动画。
+
+```kotlin
+val alpha by animateFloatAsState(if (visible) 1f else 0.5f)
+```
+
+**面试高频：** Compose 动画本质是「状态驱动 + 重组」，和 View 的 `ObjectAnimator` 思路不同。
+
+### <a id="compose-15"></a>165. Compose 主题与 Material 3
+
+**标准回答：**
+
+- `MaterialTheme(colorScheme = ..., typography = ..., shapes = ...)` 通过 `CompositionLocal` 向下提供颜色/字体/形状。
+- Material 3（M3）是当前标准，提供 `colorScheme`（含 `primary`/`surface`/`error`）、动态取色（`dynamicColor` 适配 Android 12+ 壁纸取色）。
+- 颜色通过 `MaterialTheme.colorScheme.primary` 在任意 Composable 读取，避免硬编码。
+
+**面试高频：** M3 对比 M2 主要是 `colorScheme` 取代 `colors`、新增动态配色、强调 `Surface`/`Elevation` 规范化。
+
+### <a id="compose-16"></a>166. Compose 性能优化：重组范围与稳定性
+
+**标准回答（综合 160 题）：**
+
+1. 用 `remember`/`derivedStateOf` 缩小重组范围；
+2. 列表用 `key`；
+3. 数据类加 `@Immutable`/`@Stable`，避免被判定不稳定而全量重组；
+4. 不在 Composable 体内创建新对象（`{}`、`listOf()`），否则每次重组都是新引用；
+5. 用 `LayoutInspector` / `Recomposition counts` 定位高频重组；
+6. 重型计算移出 Composable，放 `remember`/`ViewModel`/协程。
+
+**面试高频：** 这是 Compose 面试的「性能」分支，和 View 体系的过度绘制/层级优化并列考察。
+
+### <a id="compose-17"></a>167. Compose 与 ViewModel 结合（viewModel() / state 收集）
+
+**标准回答：**
+
+- 在 Composable 中用 `viewModel()`（需 Hilt/`viewModelStoreOwner`）获取作用域内的 ViewModel。
+- 收集 `StateFlow`/`LiveData` 必须用 **`collectAsStateWithLifecycle()`**（或 `collectAsState()` + `repeatOnLifecycle`），确保**只在 STARTED 及以上生命周期收集**，避免后台浪费与泄漏。
+- UI 状态放在 ViewModel（`UiState` 用 `data class`/`sealed`），Composable 只渲染 + 回传事件。
+
+```kotlin
+@Composable
+fun FileListScreen(vm: FileViewModel = viewModel()) {
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
+    when (uiState) { is Loading -> ...; is Success -> ... }
+}
+```
+
+**面试高频：** `collectAsState` vs `collectAsStateWithLifecycle` 是高频坑——后者才正确感知生命周期（lifecycle-runtime-compose 库）。
+
+### <a id="compose-18"></a>168. Navigation Compose 的特点
+
+**标准回答：**
+
+- 用 `NavHost(navController, startDestination)` + `@Composable` 路由代替 XML 导航图；路由是字符串（`"detail/{id}"`），用 `navArgument` 取参。
+- 类型安全：现在官方推荐 `NavType` + `SavedStateHandle`，或 Kotlin DSL 的 `NavDestination` 生成类型安全 API（2.8+ 的 `androidx.navigation.compose` 代码生成）。
+- 与 ViewModel 配合：`hiltViewModel()` 按 `destination`/`backStackEntry` 提供作用域，实现**跨页面共享 ViewModel**。
+
+**面试高频：** 对比 Navigation XML（`NavGraph`/`NavHostFragment` 旧方案），Compose 版更简洁、强类型。可结合本项目 `MainTabScreen` 讲。
+
+### <a id="compose-19"></a>169. Compose 的插槽 API（Slot API）与自定义布局
+
+**标准回答：**
+
+- **插槽 API**：Composable 把某些区域以 `@Composable () -> Unit` 参数暴露给调用方，调用方填内容。如 `Scaffold(topBar = { ... }, floatingActionButton = { ... })`、`Card(content = { ... })`、`Button(content = { Text(...) })`。
+- 本质就是**高阶 Composable 函数**做组合复用，是 Material 组件的设计哲学。
+- 自定义布局用 `Layout { measurables, constraints -> ... }` 手动测量/放置，对标 View 的 `onMeasure/onLayout`。
+
+**面试高频：** 插槽 API 是「声明式 UI 组合优于继承」的体现——和 90 题（组合优于继承）呼应。
+
+### <a id="compose-20"></a>170. Compose 与 View 体系在面试中的对比
+
+**标准回答（背诵表）：**
+
+| 维度 | View（XML） | Compose |
+|------|-------------|---------|
+| UI 定义 | XML + findViewById | @Composable 函数 |
+| 状态刷新 | 手动 `setText` | State 变化自动重组 |
+| 列表 | RecyclerView + Adapter | LazyColumn + items(key) |
+| 主题 | Theme.xml / style | MaterialTheme（CompositionLocal） |
+| 导航 | NavGraph XML | NavHost 代码 |
+| 生命周期感知 | LifecycleObserver | `collectAsStateWithLifecycle` / `LaunchedEffect` |
+| 性能优化 | 减少层级/过度绘制 | 缩小重组范围/稳定性 |
+
+**面试高频：** 8 年 Java 转 Kotlin 的候选人，必须能讲清「为什么公司要从 XML 切到 Compose」——开发效率、状态一致性、动态化、跨平台叙事（Compose 与 Flutter 思路相通，便于你后续接 Flutter 模块）。
 ```
 
 **onReceive 的限制：**

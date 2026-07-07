@@ -1393,10 +1393,10 @@ MVVM 三层职责分明：View 只显示 UI，ViewModel 管业务逻辑，Reposi
 
 # 二十、Android 岗位必须掌握（★★★★★）
 
-## 第一梯队（必须熟练）
+## 第一梯队（必须熟练）★JD 100% 要求
 
 - Kotlin 语言
-- MVVM 架构
+- MVVM / MVI 架构
 - ViewModel
 - LiveData / StateFlow
 - Lifecycle
@@ -1404,25 +1404,25 @@ MVVM 三层职责分明：View 只显示 UI，ViewModel 管业务逻辑，Reposi
 - Flow
 - Retrofit + OkHttp
 - Room
-- RecyclerView
+- **Jetpack Compose（声明式 UI，JD 显性要求）**
+- **Hilt（依赖注入，JD 硬性要求）**
+- Navigation（含 Navigation Compose）
 - ViewBinding
-- Navigation
 
 ## 第二梯队（最好会）
 
 - DataStore
 - Paging3
 - WorkManager
-- Hilt（DI）
 - Glide / Coil
-- StateFlow / SharedFlow
-- Compose（趋势）
+- SharedFlow（一次性事件）
+- DataBinding（维护老项目）
 
 ## 第三梯队（了解即可）
 
 - CameraX
 - Benchmark
-- 鸿蒙 ArkUI（看公司方向）
+- 鸿蒙 ArkUI（看公司方向，你的目标产品线强相关）
 
 ---
 
@@ -1432,9 +1432,9 @@ MVVM 三层职责分明：View 只显示 UI，ViewModel 管业务逻辑，Reposi
 **Day 2**：MVVM 架构 + Repository 模式（搭建完整数据流）
 **Day 3**：Room + DataStore（本地持久化）
 **Day 4**：Coroutine + Flow（异步编程，替代回调）
-**Day 5**：Navigation + ViewBinding（页面管理）
-**Day 6**：WorkManager + Paging3（后台任务 + 列表分页）
-**Day 7**：整体架构串联 + 高频面试题复盘 + 手写 MVVM Demo
+**Day 5**：Hilt 依赖注入 + Navigation / Navigation Compose（DI + 页面管理）
+**Day 6**：Jetpack Compose 声明式 UI（@Composable / 状态 / 重组 / 副作用 API）+ WorkManager
+**Day 7**：整体架构串联（Compose + Hilt + ViewModel + Flow）+ 高频面试题复盘 + 手写 MVVM Demo
 
 ---
 
@@ -1458,6 +1458,154 @@ Remote        Local
          ▼
        Service / Server
 ```
+
+---
+
+# 二十三、Hilt — 依赖注入（★★★★★）★JD 100% 必考
+
+> JD 明确要求 **Hilt** 作为依赖注入方案。本项目（jetpack-android）已用 Hilt 注入 ViewModel/Retrofit/DataStore。原十七章 MVVM 用手写 `ViewModelFactory`，生产环境标准做法是用 Hilt。
+
+## 为什么需要依赖注入（DI）？
+
+- 传统写法：`ViewModel` 里 `val repo = TaskRepository(api, db)`，依赖在类内部 `new`——**紧耦合、难测试、难替换**。
+- DI 思想：依赖由外部提供（构造传入），类只声明「我需要什么」，不关心怎么造。好处：可测试（注入假实现）、可复用、生命周期统一。
+
+## Hilt 核心注解
+
+| 注解 | 作用 |
+|------|------|
+| `@HiltAndroidApp` | 在 `Application` 上，触发 Hilt 代码生成（必备） |
+| `@AndroidEntryPoint` | 标记 Activity/Fragment/View/ViewModel，让其可被注入 |
+| `@Inject` | 标记「构造器/字段」需要被注入 |
+| `@Module` + `@Provides` | 在模块里提供第三方对象（Retrofit、OkHttp、Room） |
+| `@Singleton` / `@ViewModelScoped` | 控制实例作用域（全局单例 / 与 ViewModel 同生命周期） |
+| `@HiltViewModel` | 标记 ViewModel，使其构造可注入 Repository |
+
+## 最小可用示例
+
+```kotlin
+@HiltAndroidApp
+class PomodoroApplication : Application()
+
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    private val vm: TimerViewModel by viewModels() // Hilt 自动注入构造依赖
+}
+
+@HiltViewModel
+class TimerViewModel @Inject constructor(
+    private val repository: TimerRepository   // Hilt 自动提供
+) : ViewModel()
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+    @Provides @Singleton
+    fun provideRetrofit(): NasApiService =
+        Retrofit.Builder().baseUrl(BASE).addConverterFactory(...).build()
+            .create(NasApiService::class.java)
+}
+```
+
+## Hilt vs Dagger vs Koin（150题·74）
+
+| 维度 | Hilt | Dagger | Koin |
+|------|------|--------|------|
+| 出身 | Google 官方，基于 Dagger | Google，纯编译期 | 社区，运行时 |
+| 与 Android 集成 | ✅ 内置 `@AndroidEntryPoint` | ❌ 需手动写 `AndroidInjector` | ✅ 简单 API |
+| 编译速度 | 比 Dagger 慢但省心 | 最快但样板多 | 运行时解析稍慢 |
+| 学习曲线 | 中（约定优于配置） | 陡 | 低 |
+
+**面试高频：** Hilt = 「为 Android 量身定制的 Dagger」。99% 的 Android 项目选 Hilt，除非是纯 Kotlin 多平台（KMP）才用 Koin。
+
+---
+
+# 二十四、DataBinding — 数据绑定（★★★★）
+
+> 150题有 3 道 DataBinding 题（65-67）。它与 ViewBinding 容易混淆：ViewBinding 只做「findViewById 的类型安全替代」，DataBinding 额外支持「布局里直接绑定数据 + 表达式」。
+
+## DataBinding 是什么
+
+- 在 XML 布局里用 `<layout>` 包裹，通过 `@{}` 表达式把数据直接绑到 View 属性，减少 Activity 里的赋值代码。
+- 配合 `BaseObservable` / `ObservableField` 或 `LiveData` 可双向刷新。
+
+```xml
+<layout>
+  <data>
+    <variable name="user" type="com.x.User" />
+  </data>
+  <TextView android:text="@{user.name}" />
+</layout>
+```
+
+## 双向绑定与 BindingAdapter（150题·66）
+
+- 双向绑定：`android:text="@={viewModel.name}"`（注意 `=`），用户输入自动写回数据。
+- `@BindingAdapter("imageUrl")`：自定义属性绑定逻辑（如 Glide 加载图片），是 DataBinding 最常用扩展点。
+
+```kotlin
+@BindingAdapter("imageUrl")
+fun ImageView.load(url: String) = Glide.with(this).load(url).into(this)
+```
+
+## DataBinding vs ViewBinding（150题·67）
+
+| 维度 | ViewBinding | DataBinding |
+|------|-----------|------------|
+| 能力 | 仅类型安全访问 View | 数据绑定 + 表达式 + 双向 |
+| 编译开销 | 小 | 大（需处理表达式） |
+| 适用 | 新项目首选 | 需要布局直接绑数据时用 |
+
+**面试高频：** 现代项目**优先 ViewBinding + StateFlow/Compose**，DataBinding 表达式能力易被 Compose 取代；但若维护老项目或大量表单双向绑定，DataBinding 仍有价值。
+
+---
+
+# 二十五、Jetpack Compose — 声明式 UI（★★★★★）★JD 100% 必考
+
+> JD 中「Jetpack Compose（声明式 UI）」为 100% 必选项，且本项目全部用 Compose 编写。本章是知识点版（对应《面试八股》第八章程 151-170），帮你建立心智模型，八股题直接背。
+
+## 核心心智模型
+
+- **UI = f(state)**：Composable 是纯函数，输入状态、输出 UI；状态变 → 框架自动**重组（Recomposition）**该 Composable 子树。
+- **状态容器**：`MutableState`（Compose 原生）或来自 ViewModel 的 `StateFlow`（用 `collectAsStateWithLifecycle` 收集）。
+- **单一可信源**：UI 状态放 ViewModel，事件（`onClick`）回传 ViewModel —— 单向数据流（UDF）。
+
+## 状态与重组
+
+```kotlin
+@Composable
+fun Counter() {
+    var count by remember { mutableStateOf(0) } // remember 缓存，避免重组丢失
+    Button(onClick = { count++ }) { Text("$count") } // 读 State → 变化触发重组
+}
+```
+
+- `remember` 防重组丢状态；`rememberSaveable` 防旋转屏幕丢状态。
+- `derivedStateOf` 把高频状态降频成低频派生值，减少重组。
+- **稳定性**：数据类加 `@Immutable`/`@Stable`，否则被判定不稳定会全量重组。
+
+## 副作用 API（生命周期感知）
+
+| API | 时机 |
+|-----|------|
+| `LaunchedEffect(key)` | 进入组合/key 变化启动协程，退出自动取消 |
+| `DisposableEffect` | 进入执行、`onDispose` 清理（注册监听） |
+| `SideEffect` | 每次重组后同步给非 Compose 对象 |
+| `rememberCoroutineScope` | 在回调里 launch 协程，绑定组合生命周期 |
+
+## 与 ViewModel / 导航 / 主题
+
+- 取 ViewModel：`viewModel()` / `hiltViewModel()`（Hilt 场景）。
+- 收集流：`collectAsStateWithLifecycle()`（lifecycle-runtime-compose），**不要**裸用 `collectAsState`（不感知生命周期）。
+- 导航：`NavHost(navController, startDestination)` 代码化路由，类型安全参数。
+- 主题：`MaterialTheme` 经 `CompositionLocal` 向下提供颜色/字体。
+- 列表：`LazyColumn { items(items, key = { it.id }) { ... } }`，`key` 防错位。
+
+## Compose vs View 一句话
+
+> XML 是「建好 UI 树再手动改」，Compose 是「描述当前状态对应的 UI，框架负责刷新」。
+
+**面试高频（8年 Java 视角）：** 公司从 XML 切 Compose 的动因——开发效率、状态一致性、动态化、以及和 Flutter 思路相通（你接下来要接的 Flutter 模块），便于混合架构叙事。
 
 ---
 
