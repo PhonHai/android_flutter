@@ -488,6 +488,18 @@ person.also {
 with(person) {
     println("$name 今年 $age 岁")
 }
+
+// with 典型用法：对同一对象「多次操作」，最后返回 lambda 结果（汇总值）
+// 适合：已有对象，连续加工 / 读取它，再得到一个新值
+data class User(val name: String, var age: Int, var score: Int = 0)
+val user = User("小明", 20)
+val report = with(user) {
+    age += 1                              // 操作1：修改年龄
+    val fullName = "$name·$age"           // 操作2：读取并拼接
+    println("处理中: $fullName")          // 操作3：读取并打印
+    "用户=$fullName, 成年=${age >= 18}"    // 返回汇总结果（lambda 最后一行）
+}
+println(report)  // 用户=小明·21, 成年=true
 ```
 
 ## 选择原则
@@ -506,6 +518,39 @@ it       also                   let
 | `apply` | this | 对象本身 | 改对象+返对象：一般用来初始化配置 |
 | `also` | it | 对象本身 | 不改对象+返对象：（日志、校验） |
 | `with` | this | lambda 结果 | 对同一对象多次操作：类似run聚焦同一对象 |
+
+### with 与 let 的核心区别
+
+两者**功能等价**——都能对同一对象多次操作并返回 lambda 结果。区别只在语法与空安全配合：
+
+| 维度 | `with(obj) {...}` | `obj.let { it -> ... }` |
+|------|-------------------|--------------------------|
+| 身份 | 顶层函数，`obj` 作为参数传入 | 扩展函数，在 `obj` 上调用 |
+| 访问上下文 | `this`（可省略，直接写 `age`） | `it`（必须写，或改名 `u`） |
+| 返回值 | lambda 最后一行 | lambda 最后一行（相同） |
+| 空安全配合 | ❌ 无法配合 `?.` | ✅ `obj?.let { }` 天然非空判断 |
+
+**空安全是关键差异**——实战中 `let` 比 `with` 常用的根本原因：
+
+```kotlin
+val user: User? = fetchUser()        // 可能为 null
+
+user?.let { println(it.name) }       // ✅ 为 null 时整块跳过
+
+// with 直接这么写会编译报错（user 是 User?，with 需要 User）
+with(user) { ... }                   // ❌ 类型不匹配
+
+// with 想配合空安全得绕一圈
+user?.let { with(it) { println(name) } }
+```
+
+### 经验法则
+
+- **对象一定非空、想少打字、聚焦它的成员调用** → `with`（或 `run`，两者几乎一样，`run` 是扩展版 `with`）
+- **对象可能为空、要顺手做非空判断** → `let`（配 `?.`）
+- **还要把对象本身返回去做链式调用**（而不是返回结果） → `also` / `apply`
+
+> 一句话：`with` 和 `let` 的"能做什么"一样，区别在"怎么调"和"能不能配 `?.` 做空安全"。
 
 ## 实战场景
 
@@ -1328,29 +1373,56 @@ val config: AppConfig by lazy {
     AppConfig.loadFromFile()
 }
 
-// 2. 标准委托：observable（观察属性变化）
+// 2. 标准委托：observable（观察属性变化）—— 赋值「之后」回调通知
+// Delegates.observable(初始值) { thisRef, old, new -> ... }
+//   "初始值"   —— 属性的起始值
+//   lambda 三参数：thisRef(持有者，不用就写 _)、old(变更前的值)、new(变更后的值)
+//   触发时机：属性被赋新值【之后】才回调 → 回调里无论写什么，赋值已经发生，无法阻止
 var name: String by Delegates.observable("初始值") { _, old, new ->
-    Log.d("TAG", "name 从 $old 变为 $new")
+    Log.d("TAG", "name 从 $old 变为 $new")   // old=旧值, new=新值；常用于日志 / 自动刷新 UI
 }
 
-// 3. 标准委托：vetoable（带否决权）
+// 3. 标准委托：vetoable（带否决权）—— 赋值「之前」回调，可拒绝
+// Delegates.vetoable(初始值) { thisRef, old, new -> 布尔值 }
+//   区别：lambda 的【返回值】决定本次赋值是否被允许
+//        true  = 允许，属性变为 new
+//        false = 拒绝，属性保持 old 不变
+//   触发时机：属性被赋新值【之前】先回调 → 所以能拦截（这正是 "veto 否决" 的含义）
 var age: Int by Delegates.vetoable(0) { _, _, new ->
-    new >= 0  // 如果 new < 0，拒绝赋值
+    new >= 0   // 返回值：只有 new 非负才允许赋值；负数直接拒绝（age 维持旧值）
 }
 
-// 4. 自定义委托
+// 4. 自定义委托：自己写一个「委托对象」，完全掌控属性的读写逻辑
+// 任何类只要实现 getValue（读）/ setValue（写），就能放在 `by` 后面
+// —— 标准库里的 lazy / observable 本质上也是这种类，只是官方帮你写好了
 class LoggedProperty<T>(private var value: T) {
+
+    // getValue：当「读取」被委托的属性时，编译器自动调用它（不是你手动调）
+    // 三个参数是 Kotlin 委托协议的「固定签名」，必须照着写，缺一不可：
+    //   thisRef  —— 拥有该属性的对象（谁在用这个属性）；用 Any? 兜底最通用
+    //   property —— 属性的元信息（KProperty），能拿到属性名、类型等
+    //   返回值 T  —— 这次读取应当返回的值
     operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
-        Log.d("TAG", "读取 ${property.name} = $value")
+        Log.d("TAG", "读取 ${property.name} = $value")   // property.name 拿到 "token"
         return value
     }
+
+    // setValue：当「写入」被委托的属性时，编译器自动调用它
+    //   多出来的 newValue 参数 —— 这次要赋的新值
     operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
         Log.d("TAG", "设置 ${property.name} = $newValue")
-        value = newValue
+        value = newValue                                     // 真正把值存起来
     }
 }
 
-var token: String by LoggedProperty("")  // 每次读写都打日志
+// 使用：token 的每次 get / set 都被「转发」到 LoggedProperty 的 getValue / setValue
+var token: String by LoggedProperty("")   // 初始值 "" 传给构造器；之后每次读写都打日志
+
+// 背后的原理（编译器替你生成的等价 Java 伪代码，理解即可，不用手写）：
+//   get() = loggedProperty.getValue(this, ::token)      // this=thisRef, ::token=property
+//   set(v) = loggedProperty.setValue(this, ::token, v)  // v=newValue
+// 所以 `by` 不是魔法，只是把属性的访问「转发」给了你的委托对象。
+// 想要什么行为，就往 getValue / setValue 里写：打日志、校验、缓存、计数……都能做。
 ```
 
 ## 面试高频
