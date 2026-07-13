@@ -32,9 +32,11 @@ android {
 
 dependencies {
     // Flutter 模块 — Add-to-App 核心集成点
+    // 集成方式：settings.gradle 通过 include_flutter.groovy 把 flutter_module 挂为 Gradle 子项目 :flutter，
+    //          本工程以 project(":flutter") 子项目源码依赖方式引用（不是预编译 jar/aar 文件依赖）。
     // 面试话术：
-    //   "Flutter 模块编译为 AAR，原生壳通过 gradle 依赖引入，
-    //   在 Application 层缓存 FlutterEngine，避免页面切换重建引擎。"
+    //   "Flutter 模块作为 Gradle 子项目 :flutter 接入，原生壳在 Application 层缓存 FlutterEngine，
+    //    避免页面切换重建引擎，并通过 MethodChannel 与原生通信。"
     debugImplementation(project(":flutter"))
     releaseImplementation(project(":flutter"))
 
