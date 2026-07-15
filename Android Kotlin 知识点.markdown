@@ -259,6 +259,52 @@ fun handleResult(result: Result<List<File>>) {
 | 适用场景 | 简单状态（ON/OFF） | 复杂状态（Success<T>/Error(msg)） |
 | 继承 | 不能继承 | 子类可以继承 |
 
+## Java 真的没有密封类吗？
+
+要分两说，这点对 8 年 Java 经验的你很重要：
+
+**老 Java（8 及以前，也是 Android 最常见的环境）**：没有 sealed，只能用「枚举 + 抽象类组合」或「int 常量」模拟，类型不安全（前面 Java 痛点那段已经演示了 int 常量的坑）。
+
+**Java 17+**：终于引入了 `sealed interface` + `permits` + `record`，几乎是 Kotlin sealed class 的一一对应：
+
+```java
+// Java 17 的密封接口 + record（不可变数据载体）
+public sealed interface Result<T> permits Success, Error, Loading {
+}
+public record Success<T>(T data) implements Result<T> {}
+public record Error(String message, Throwable exception) implements Result<T> {}
+public record Loading() implements Result<T> {}
+
+// 处理时编译器强制穷举（像 Kotlin 的 when）
+static <T> void handle(Result<T> r) {
+    if (r instanceof Success<T> s) { System.out.println(s.data()); }
+    else if (r instanceof Error e) { System.out.println(e.message()); }
+    else if (r instanceof Loading) { System.out.println("loading"); }
+    // 漏掉任意一个分支 → 编译告警/错误
+}
+```
+
+> ⚠️ 现实：**Android 的 minSdk 限制**让绝大多数项目用不上 Java 17 的 sealed。所以 Kotlin 的 `sealed class` 在 Android 里仍是实现「类型安全状态树」的首选方案。
+
+## 穷举的原理 & 易记口诀
+
+为什么 `when(result)` 能**强制**你写全所有分支？因为编译器知道 `sealed class` 的**全部子类**——它们必须定义在同一文件（或同一编译单元）内，编译器在编译期就能数清楚有几个"叶子"。
+
+这带来一个 Java `int` 常量/`enum` 都给不了的好处：
+
+- **漏写分支 → 编译报错**（或你主动写 `else` 兜底）
+- **以后新增一个子类**（比如 `Result.Timeout`）→ 所有 `when` 处**立刻编译报错**提醒你去补，不会漏到线上
+
+对比一下三种方案的安全性：
+
+| 方案 | 漏分支的后果 | 类型安全 |
+|------|--------------|----------|
+| Java `int` 常量 + `switch` | 运行时走到 `default`，可能 NPE/逻辑错误 | ❌ 可赋任意值 |
+| Java `enum` | 编译可查（但每个值只能带固定数据） | ✅ 但受限 |
+| Kotlin `sealed class` | **编译期强制穷举**，新增子类自动报警 | ✅ 且子类可带不同数据 |
+
+> 🔑 易记口诀：**密封类 = 封闭的继承树 + 编译期强制穷举**。比 `if-else`/`int` 常量安全得多，是 Kotlin 里封装「成功/失败/加载/超时」这类有限状态的终极武器。
+
 ## 实战：网络请求封装
 
 ```kotlin
@@ -341,19 +387,80 @@ n.isNullOrBlank2()  // true，不会 NPE
 
 ## 原理
 
-```kotlin
-// 扩展函数不是真的修改了 String 类
-// 它编译后是静态方法，第一个参数是被扩展的类实例
-//
-// fun String.isBlank(): Boolean { return this.trim().isEmpty() }
-// ↓ 编译为 ↓
-// public static final boolean isBlank(String $this) {
-//     return $this.trim().isEmpty();
-// }
+扩展函数**不是真的修改了原来的类**，它只是编译期的语法糖。编译后，它变成了一个**静态方法**，被扩展的对象作为**第一个参数**传进去。
 
-// 所以：扩展函数不能访问 private 成员
-// 扩展函数是「静态解析」的，不是「动态派发」
+### 反编译看本质
+
+```kotlin
+// Kotlin 源码
+fun String.isBlank(): Boolean {
+    return this.trim().isEmpty()
+}
+val result = "   ".isBlank()
+
+// ↓ 编译后等价于（用 Android Studio → Show Kotlin Bytecode → Decompile 看到）↓
+public final class StringKt {
+    public static final boolean isBlank(@NotNull String $this$isBlank) {
+        Intrinsics.checkNotNullParameter($this$isBlank, "$this$isBlank");
+        return $this$isBlank.trim().isEmpty();
+    }
+}
+// 调用处：StringKt.isBlank("   ")
 ```
+
+三个关键点一眼看穿：
+
+1. **类名 + `Kt`**：扩展函数被放进一个叫 `原文件名Kt` 的类里（上面叫 `StringKt`，因为定义在 `String.kt` 文件）。
+2. **接收者当首参**：`"   "` 被作为第一个参数 `$this$isBlank` 传入，所以 `this` 其实就是这个参数。
+3. **零运行时开销**：调用就是普通静态方法调用，没有创建包装对象、没有反射。
+
+### 从 Java 怎么调用？
+
+```java
+// Java 里没有"扩展函数"概念，老老实实调静态方法
+boolean r1 = StringKt.isBlank("   ");          // 类名是 文件名 + Kt
+// 或静态导入后直接用
+import static com.xxx.StringKt.isBlank;
+boolean r2 = isBlank("   ");
+```
+
+> 所以扩展函数**本质上就是 Java 的工具类方法**（`StringUtils.isBlank(str)`），只是 Kotlin 让你写起来、读起来像"对象自带的方法"。这也是它最大的用途——**取代 Java 里那一堆 `StringUtils`、`DateUtils`、`ViewUtils`**。
+
+### 静态分派（为什么不能重写）
+
+扩展函数是**静态解析**的：调用时看的是变量的**声明类型**，不是运行时的实际类型。
+
+```kotlin
+open class View
+class Button : View()
+
+fun View.showTag() = "I'm a View"
+fun Button.showTag() = "I'm a Button"
+
+fun printTag(v: View) {
+    println(v.showTag())   // 看声明类型 View → 调用 View 的扩展，输出 "I'm a View"
+}
+
+printTag(Button())          // 即使传入的是 Button 实例，仍输出 "I'm a View"
+```
+
+这就解释了几个面试常考点：
+- 扩展函数**不能 override**（它不参与多态，是静态绑定）
+- 同名的**成员函数优先级高于扩展函数**（类自己有这方法，就不会用扩展的）
+- 扩展函数**不能访问 private / protected 成员**（毕竟它只是外部静态方法，没有类内部权限）
+
+### 扩展属性同理
+
+```kotlin
+// 给 String 加一个"最后一个字符"的属性（只有 getter，没有幕后字段）
+val String.lastChar: Char
+    get() = this[length - 1]
+
+// 编译后同样是静态方法：StringKt.getLastChar(String $this)
+// 注意：扩展属性没有 backing field，不能存数据，只能 computed
+```
+
+> 💡 易记：**扩展 = 编译器帮你把 `obj.method()` 偷偷改写成 `XxxKt.method(obj)`**。所以它灵活（能给 `final` 的 `String` 加方法）、无开销，但也因此不参与继承多态。
 
 ## 面试高频
 
@@ -850,6 +957,76 @@ viewModelScope.launch {
 // 不需要回调、不需要线程切换代码、不需要嵌套
 ```
 
+## 挂起的真正含义（扔物线视角）
+
+扔物线有句大白话：**「协程就是一个线程框架」**。别把它想得多玄乎——它本质是一套帮你方便地切线程的 API。**「挂起（suspend）」**是协程最反直觉的地方，抓住一句话就通了：
+
+> **挂起的是「协程」，不是「线程」，也不是「函数」。**
+
+把 `launch { ... }` 里的代码块当成一个协程。当协程执行到某个 `suspend` 函数（比如 `delay`、`withContext`、网络请求）时：
+
+1. **协程从当前线程「脱离」**——注意是脱离，不是停下来。线程从此不再管这个协程剩下的代码。
+2. **线程被解放**：如果是后台线程，它要么被回收、要么去接别的任务（和 Java 线程池的线程一模一样）；如果是 Android 主线程，它立刻回去干正事（每秒 60 次的界面刷新、响应用户点击）。
+3. **协程带着剩余代码，去 suspend 函数指定的线程继续跑**（比如 `withContext(Dispatchers.IO)` 指定的 IO 线程）。
+4. **suspend 函数执行完后，协程自动把线程切回来**——切到你启动它的那个线程。
+
+Java 对照一下就清楚了：
+
+```java
+// 传统 Java：你手动切出去、再手动切回来
+new Thread(() -> {
+    String result = networkRequest();                   // 在子线程
+    runOnUiThread(() -> textView.setText(result));       // 手动切回主线程
+}).start();
+
+// 协程：切出去、切回来都是自动的，你只写"顺序代码"
+viewModelScope.launch {            // 在主线程启动
+    val result = api.login(user)   // 遇到 suspend，自动切到 IO 线程执行
+    showFiles(result)              // suspend 结束后，自动切回主线程
+}
+```
+
+> ⚠️ **最大误区**：`suspend` 函数**不等于**运行在子线程。它只是「可以被挂起」。要不要切线程，由 `Dispatchers` 决定；不指定就停在原来的线程。
+
+## suspend 的底层：CPS 状态机转换
+
+`suspend` 是个**编译器指令**，它自己不创建线程、不挂起任何东西。它的唯一作用是告诉编译器：**「请把我这个函数改写成一个状态机」**。具体做两件事：
+
+1. **改签名**：在参数列表最后，偷偷加一个 `Continuation<T>` 类型的隐藏参数（你可以把它理解成「挂起点之后要继续执行的代码」这个回调）。
+2. **改函数体（CPS 转换）**：把你的顺序代码切成一段段，用 `label` 标记执行到哪了。
+
+看一个极简例子反编译后的逻辑（伪代码）：
+
+```kotlin
+// 源码
+suspend fun simpleDelay(): String {
+    delay(1000)
+    return "Done"
+}
+
+// 编译器生成的状态机（本质，简化版）
+class SimpleDelaySM : Continuation<Any?> {
+    var label = 0                                  // 记录执行到哪一步
+    override fun resumeWith(data: Result<Any?>) {
+        when (label) {
+            0 -> {
+                label = 1
+                val r = delay(1000, this)          // delay 也是 suspend
+                if (r == COROUTINE_SUSPENDED) return COROUTINE_SUSPENDED  // 挂起！线程释放
+            }
+            1 -> {
+                // 恢复：从这里继续，不会再调 delay
+                return "Done"
+            }
+        }
+    }
+}
+```
+
+执行流程：第一次进 `label=0`，启动 `delay` 定时器，返回 `COROUTINE_SUSPENDED` → **线程被释放去干别的**；1 秒后定时器回调 `resumeWith`，`label=1` → 直接返回 `"Done"`，**线程切回**。
+
+> 💡 **易记口诀**：`suspend` = 编译器把你的代码「切片」，每片用 `label` 标记；挂起 = 保存现场 + 返回 `SUSPENDED`（线程溜了）；恢复 = 跳到对应 `label` 接着跑。这就是为什么协程能「用同步的写法写异步」——它底层就是个自动管理的状态机 + 回调。
+
 ## 三个核心构建块
 
 ```kotlin
@@ -878,6 +1055,163 @@ viewModelScope.launch {
 }
 ```
 
+## CoroutineScope（作用域）核心知识
+
+> 你前面卡住，根子就在这儿：`viewModelScope.launch { }` 里的 `viewModelScope` 到底是什么？为什么 `withContext` 要写 `Dispatchers.IO`？这一节把"作用域"一次讲透。读完这一节，前面 `async` / `withContext` 的疑问会全部串起来。
+
+### 1. 什么是 CoroutineScope
+
+一句话：**CoroutineScope 是「协程的家」——它规定了协程生在哪、死在哪、用什么线程跑。**
+
+```kotlin
+// 你写的每一句 launch / async / withContext，前面都必须有个 scope
+viewModelScope.launch { ... }   // ← 这个 viewModelScope 就是"家"
+lifecycleScope.launch { ... }   // ← Activity/Fragment 里的"家"
+GlobalScope.launch { ... }      // ← 全局"家"（不推荐用于 UI）
+```
+
+源码层面，`CoroutineScope` 只有一个成员：
+
+```kotlin
+public interface CoroutineScope {
+    public val coroutineContext: CoroutineContext  // ← 就这一个！
+}
+```
+
+**所以"作用域"的本质 = 一个 `CoroutineContext`（协程上下文）。** 你调用 `scope.launch {}` 时，新建的协程会成为这个 scope 的**子协程**，并继承它的 context。
+
+**Java 对标**：把 `CoroutineScope` 想成一个「自带生命周期的线程池 + 上下文容器」。传统 Java 里 `ExecutorService.submit(task)` 的线程池不会自动跟着 Activity 销毁；而 `viewModelScope` 会在 ViewModel 销毁时自动 `cancel()` 掉里面所有任务——这就是它存在的意义。
+
+### 2. CoroutineContext：一个装了四样东西的"包裹"
+
+`coroutineContext` 不是单个值，而是一个**组合**（类似 Map），最多装四类元素：
+
+| 元素 | 作用 | Java 对标 |
+|------|------|-----------|
+| `Job` | 协程的"句柄"，负责取消、等待、生命周期 | `Future` / `Thread` 本身 |
+| `CoroutineDispatcher` | 决定协程跑在哪个/哪些线程 | 线程池 `Executor` |
+| `CoroutineName` | 调试用的名字 | `Thread.getName()` |
+| `CoroutineExceptionHandler` | 未捕获异常的兜底处理 | `Thread.UncaughtExceptionHandler` |
+
+```kotlin
+// 自己拼一个 scope（生产里少用，理解用）
+val myScope = CoroutineScope(
+    Dispatchers.IO                  // 调度器：后台线程
+    + SupervisorJob()               // Job：用 Supervisor 隔离子协程失败
+    + CoroutineName("my-scope")     // 名字：调试看得到
+)
+```
+
+> 用 `+` 把元素拼进 context，同类型后者覆盖前者（比如再 `+ Dispatchers.Main` 就换成主线程）。
+
+### 3. 为什么必须有作用域（结构化并发）
+
+没有作用域会怎样？协程一启动就"放飞自我"，**页面关了它还在跑** → 内存泄漏、甚至崩溃（去更新一个已销毁的 View）。
+
+结构化并发（Structured Concurrency）的三大保证：
+
+1. **取消会向下传播**：scope 取消 → 它里面所有子协程全取消。
+2. **父协程会等子协程**：`launch { async{...}; async{...} }` 外层会等里面两个都结束才返回。
+3. **错误会向上冒泡**：子协程抛异常 → 默认取消父协程（除非用 `SupervisorJob`）。
+
+```kotlin
+// 反例：GlobalScope，页面销毁后协程还在跑 → 泄漏 + 可能崩溃
+GlobalScope.launch {            // ❌ 没有"家"，永远跟着进程活
+    delay(5000)
+    textView.text = "done"      // Activity 早销毁了，更新 UI 直接崩
+}
+
+// 正例：viewModelScope，页面销毁自动取消
+viewModelScope.launch {         // ✅ ViewModel 清空时自动 cancel
+    delay(5000)
+    _state.value = "done"       // 安全：ViewModel 在就不会更新已死 UI
+}
+```
+
+**Java 对标**：`ExecutorService` 得手动 `shutdown()` / `shutdownNow()`，忘了就泄漏；协程作用域把"关闭"绑定到生命周期，自动帮你做。（取消/异常的细节见后文「父子协程的取消传播」「结构化并发」两节。）
+
+### 4. 内置作用域一览（记住这 5 个）
+
+| 作用域 | 在哪用 | 什么时候自动取消 | 推荐度 |
+|--------|--------|------------------|--------|
+| `GlobalScope` | 任意处 | 永不（随进程） | ❌ UI 层禁用，易泄漏 |
+| `viewModelScope` | ViewModel 里 | ViewModel `onCleared` | ✅✅✅ 最常用 |
+| `lifecycleScope` | Activity / Fragment | `onDestroy` | ✅✅✅ Activity 里用 |
+| `rememberCoroutineScope()` | Compose 函数里 | Composable 离开组合 | ✅✅ Compose 专用 |
+| `runBlocking` | `main` / 测试 | 跑完内部协程才返回（阻塞当前线程） | ⚠️ 只用于入口/测试 |
+
+```kotlin
+// ViewModel 里（最常见）
+class MyVm : ViewModel() {
+    fun load() = viewModelScope.launch { ... }   // ViewModel 销毁自动取消
+}
+
+// Activity / Fragment 里（你问题 2 的正解）
+class MyActivity : AppCompatActivity() {
+    fun load() = lifecycleScope.launch {          // ← 用 lifecycleScope，不是 viewModelScope
+        val data = withContext(Dispatchers.IO) { dao.queryAll() }
+        textView.text = data                      // 自动回主线程
+    }
+}
+```
+
+> **关键纠正你问题 2 的误区**：`withContext` 不能裸放在普通方法里，它必须处在协程中；在 Activity 里就是放进 `lifecycleScope.launch { }`。`viewModelScope` 和 `lifecycleScope` 是"同一个东西的两个绑定版本"——都包了 `Dispatchers.Main.immediate`，区别只在**绑定到谁的生命周期**（ViewModel vs LifecycleOwner）。
+
+### 5. 作用域 × 调度器：子协程去哪个线程？
+
+这是你问题 2 的核心：**`withContext(Dispatchers.IO)` 为什么非写不可？**
+
+```kotlin
+viewModelScope.launch {
+    // launch 没指定调度器 → 继承 viewModelScope 的 → Dispatchers.Main（主线程！）
+    val data = withContext(Dispatchers.IO) {
+        dao.queryAll()        // ← withContext 临时切到 IO 后台
+    }                          // ← 出了大括号，自动切回 Main
+    textView.text = data      // ← 在主线程，安全更新 UI
+}
+```
+
+规则：
+- **子协程默认继承 scope 的调度器**。`viewModelScope` / `lifecycleScope` 默认都是 `Dispatchers.Main.immediate`（主线程）。
+- 所以 `launch { }` 里**默认就在主线程跑**。`dao.queryAll()` 这种耗时操作若不切走，就会**卡主线程 / ANR**。
+- `withContext(Dispatchers.IO)` 的作用：**临时**把这段切到后台，执行完**自动切回**原来的主线程。这就是它"防止跑主线程"的方式。
+- 想让整个协程都在后台跑，也可以 `viewModelScope.launch(Dispatchers.IO) { ... }`，但其中更新 UI 就得再 `withContext(Main)`。
+
+```kotlin
+// 等价写法对比
+viewModelScope.launch(Dispatchers.IO) {            // 整段在 IO
+    val data = dao.queryAll()
+    withContext(Dispatchers.Main) { textView.text = data }  // 更新 UI 再切回 Main
+}
+// vs（更直观，推荐）
+viewModelScope.launch {                             // 主线程起步
+    val data = withContext(Dispatchers.IO) { dao.queryAll() }  // 只这块去 IO
+    textView.text = data                            // 主线程
+}
+```
+
+### 6. runBlocking：桥接"阻塞世界"的入口
+
+`runBlocking` 是唯一会**阻塞当前线程**直到内部协程全完成的协程启动器——它和 `suspend` 的"不阻塞"正好相反。
+
+```kotlin
+fun main() = runBlocking {        // 阻塞 main 线程，直到里面跑完（程序入口/测试用）
+    launch { delay(1000); println("hello") }
+    println("world")              // 先打印 world，1 秒后 hello
+}
+```
+
+- **用途**：`main` 函数、单元测试。生产代码的 UI 层**绝对别用**（会卡死主线程）。
+- **Java 对标**：类似 `CountDownLatch.await()` 把主线程拦住等子任务——`runBlocking` 就是协程版的"等所有任务完成再继续"。
+
+### 7. 易记口诀
+
+- **作用域 = 协程的家**：规定了"生在哪、死在哪、用什么线程"。
+- **context = 四件套**：Job（生命周期）+ Dispatcher（线程）+ Name（调试）+ Handler（异常）。
+- **UI 层用 viewModelScope / lifecycleScope，别用 GlobalScope**：避免泄漏。
+- **默认在主线程**：`launch {}` 不写调度器就跑在 scope 的 Main 上，`withContext(IO)` 才去后台。
+- **withContext = 临时出差，自动回乡**：去 IO 干完活，自动回 Main 更新 UI。
+
 ## Dispatchers 调度器
 
 | Dispatcher | 作用 | Java 对标 |
@@ -890,6 +1224,15 @@ viewModelScope.launch {
 ## 实战：NAS 文件列表加载
 
 ```kotlin
+// @Inject constructor：Hilt（依赖注入框架）的注解，标注在主构造函数上
+// 作用：告诉 Hilt「这个类的实例由你来创建，构造函数里声明的依赖由你自动注入」
+//   - 本例声明了 private val fileRepo: FileRepository
+//   - Hilt 会先准备好 FileRepository（它自己也要能被 Hilt 提供），再传进构造函数
+//   - 你不用手动 new FileViewModel(...)，框架替你组装好，谁需要就注入给谁
+// Java 对照：传统写法是你自己 new 并拼依赖 ——
+//            FileViewModel vm = new FileViewModel(new FileRepository());
+//            依赖一多就变成「依赖地狱」；用 @Inject 后依赖由框架统一管理，解耦且易测试
+// 注意：@Inject 是 Hilt/DI 机制，不是协程语法；本 demo 只是用协程(loadFiles)顺带展示 Hilt 注入 Repository
 class FileViewModel @Inject constructor(
     private val fileRepo: FileRepository
 ) : ViewModel() {
@@ -991,6 +1334,168 @@ viewModelScope.cancel()
 - 如果子协程的异常不想传播，用 SupervisorJob
 ```
 
+## Job 家族：Job() / SupervisorJob() / Deferred / CompletableJob
+
+**每个协程背后都有一个 `Job`**，它就是协程的"句柄"和生命周期对象（`launch` 的返回值就是 `Job`）。但 `Job` 不止一种，`SupervisorJob` 是其中一个变体。这一节把整族讲清。
+
+### 1. 一句话区分四个成员
+
+| 名字 | 是什么 | 怎么得到 |
+|------|--------|----------|
+| `Job` | 协程生命周期的接口/句柄：可取消、可查状态、可等待完成 | `launch { }` 的返回值就是 `Job` |
+| `Job()` | 工厂函数，返回一个**普通** `Job`（精确类型是 `CompletableJob`） | 自己构造作用域：`CoroutineScope(Job())` |
+| `SupervisorJob()` | 工厂函数，返回一种"**不连坐**"的 `Job` | `CoroutineScope(SupervisorJob())` |
+| `Deferred<T>` | `Job` 的**子接口**，额外多了 `await()` 拿结果 | `async { }` 的返回值 |
+
+### 2. 核心对比：`Job()` vs `SupervisorJob()`（取消传播行为完全相反）
+
+```kotlin
+// A. Job()：子协程崩溃 → 连坐父协程 + 所有兄弟协程
+val scopeA = CoroutineScope(Job() + Dispatchers.Main)
+scopeA.launch { throw RuntimeException("a 崩了") }   // a 崩
+scopeA.launch { /* 这个 b 也被取消！被 a 连坐 */ }   // ← 受连累
+
+// B. SupervisorJob()：子协程崩溃 → 只取消自己，兄弟无恙
+val scopeB = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+scopeB.launch { throw RuntimeException("a 崩了") }   // a 崩
+scopeB.launch { /* 这个 b 继续跑，不受影响 */ }      // ← 不连坐
+```
+
+**口诀：`Job()` 连坐，`SupervisorJob()` 各自为政。**
+
+> **Java 视角**：`Job()` 就像"一个 `Future` 失败，就把你手里的整个 `ExecutorService` 关掉"；`SupervisorJob()` 就像"一组各自独立的 `Future`，谁挂谁挂，互不影响"。
+
+### 3. ⚠️ 最大的坑：SupervisorJob 只保护"直接子协程"
+
+```kotlin
+val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+scope.launch {                          // 直接子协程（受 Supervisor 保护）
+    launch { throw RuntimeException("孙崩了") }   // 孙协程
+    launch { /* 这个兄弟会被取消！因为孙的父是外层 launch，不是 scope */ }
+}
+```
+
+`SupervisorJob` 隔离的是"**scope 的直接子协程**"。一旦你在某个 `launch` 里**再 `launch`**，内层就是外层 `launch` 的子、不是 scope 的子——内层崩依然会取消外层那个 `launch` 及其兄弟。**想让更深层也互不连坐，用 `supervisorScope { }` 块：**
+
+```kotlin
+supervisorScope {                      // 块内所有 launch 互相独立
+    launch { throw RuntimeException("a 崩了") }
+    launch { /* 这个 b 不受影响 */ }    // supervisorScope 自己就是 SupervisorJob
+}
+```
+
+### 4. Deferred<T> 与 CompletableJob
+
+```kotlin
+// Deferred：async 返回，Job 的子接口，多了 await() 拿结果
+val d: Deferred<User> = async { api.getUser() }
+val u: User = d.await()                // 挂起当前协程，直到有结果
+
+// CompletableJob：Job() 工厂实际返回的类型，可手动 complete()
+val job: CompletableJob = Job()
+job.complete()                         // 手动标记完成
+job.invokeOnCompletion { println("协程结束了") }
+```
+
+**这些 `complete()` / `invokeOnCompletion` 到底干嘛用？**
+
+- `complete()`：**手动把 Job「标记完成」**（不再 active）。但裸 `Job()` 没有"返回值"可用，实际项目里几乎不直接这么用。更常见的是它的"带结果版" **`CompletableDeferred<T>`**——既能 `complete(value)` 手动填结果，又能 `await()` 在别处等这个结果。
+- `invokeOnCompletion { cause -> ... }`：给 Job 注册一个**结束回调**，无论正常完成、异常、还是被取消都会触发，回调里能拿到 `cause`。用途类似 `finally`，但挂在 Job 上、能区分"正常结束 vs 被取消"。
+
+**业务场景 1：等一个「未来才发生的事件」，再让别处继续**
+
+```kotlin
+// 等「用户登录成功」这个未来事件，再去拉主页数据
+val loginReady = CompletableDeferred<User>()   // 可完成的 Deferred：既 complete() 填值，又 await() 等
+
+// 某处（如登录接口回调）登录成功时，手动"填好"结果
+fun onLoginSuccess(user: User) {
+    loginReady.complete(user)                  // 手动标记完成并塞入 user
+}
+
+// 另一处等待这个事件（登录没完成前，一直挂起停在这）
+viewModelScope.launch {
+    val user = loginReady.await()              // 阻塞的是「协程」，不是线程
+    loadHome(user)                             // 登录一完成就继续
+}
+```
+
+这就是 `CompletableDeferred` 的典型价值：**把一个"延迟到未来才产生的结果"当作同步的 `await()` 来用**，比回调嵌套清爽太多。
+
+**业务场景 2：协程结束时统一做清理 / 埋点 / 计时**
+
+```kotlin
+val job = viewModelScope.launch { fetchData() }
+job.invokeOnCompletion { cause ->
+    when (cause) {
+        null -> println("正常完成")                       // cause == null 表示正常完成
+        is CancellationException -> println("被取消")      // 调用了 cancel()
+        else -> println("异常结束: $cause")               // 协程体内抛了异常
+    }
+}
+```
+
+> 记忆点：`cause == null` = 正常收工；非 null = 异常或取消（取消抛的是 `CancellationException`）。`finally` 管"协程体内部"的清理，`invokeOnCompletion` 管"整个 Job 结束"的清理。
+
+### 5. Job 的状态机（面试常问）
+
+```
+              start()                 自己跑完(还有子协程在跑)
+        New ─────────► Active ───────────────────────────► Completing ──(子都结束)──► Completed
+                        │  ▲                                      │
+                        │  │ cancel() / 父协程取消                │ cancel() / 父协程取消
+                        ▼  │                                      ▼
+                    Cancelling ───────────(清理完毕)──────────► Cancelled
+```
+
+**逐状态拆解（对照你的中文：活动/完成中/已完成/取消中/取消完成）：**
+
+| 状态 | 中文 | 含义 | 关键点 |
+|------|------|------|--------|
+| `New` | 新建 | 协程已创建，但还没开始跑 | 多数情况一闪而过；普通 `launch` 创建后立刻被调度进 `Active`；只有 `CoroutineStart.LAZY` 或手动 `Job()` 才容易观察到 |
+| `Active` | **活动 / 运行中** | 正在执行协程体 | 最常见状态；`isActive = true` |
+| `Completing` | **完成中** | 协程体已跑完，但还在等它的**子协程**结束 | 过渡态，几乎观察不到 |
+| `Completed` | **已完成** | 自己和所有子协程都结束了 | `isCompleted = true` |
+| `Cancelling` | **取消中** | 收到了 `cancel()` 或父协程取消，正在执行清理（finally、等子协程取消） | 过渡态 |
+| `Cancelled` | **已取消（取消完成）** | 清理完毕 | `isCancelled = true`，且 `isCompleted = true`（取消也是一种"完成"） |
+
+**两条主线（记住这俩就不会乱）：**
+- **正常线**：`New → Active → Completing → Completed`（干活 → 活干完等娃 → 全结束）
+- **取消线**：任何"活跃阶段"被 `cancel()` 或父取消 → `Cancelling → Cancelled`（进入清理 → 清理完）
+
+**三个判断属性的真相（最容易混）：**
+
+```kotlin
+job.isActive      // New / Active / Completing 时为 true；Cancelling / Cancelled 时为 false
+job.isCompleted   // Completing / Completed / Cancelling / Cancelled 时为 true（一旦进入"收尾流程"就算完成）
+job.isCancelled   // Cancelling / Cancelled 时为 true
+```
+
+> 一句话记忆：**Active 是「干活中」；Completing / Cancelling 是两个收尾过渡态（一个正常收尾、一个取消收尾）；Completed 和 Cancelled 是两条线的终点。** `isCompleted` 在"取消"时也 true，因为取消也是一种结束。
+
+### 6. 常用 API
+
+```kotlin
+job.cancel()                  // 取消自己
+scope.cancelChildren()        // 只取消所有子协程，scope 本身留着
+job.join()                    // 挂起，等 job 结束（挂起函数，不在当前线程阻塞）
+job.invokeOnCompletion { }    // 完成时回调
+```
+
+### 7. Java 对照表
+
+| Kotlin | Java 近似物 |
+|--------|-------------|
+| `Job` | `Future` / `Thread` 的句柄（可取消、可查状态） |
+| `Job()` 连坐 | 一个任务失败取消共享的线程池（需自己写逻辑） |
+| `SupervisorJob()` | 一组各自独立的 `Future`，互不影响 |
+| `Deferred<T>` | `CompletableFuture<T>`（能 `get()` 拿结果） |
+| `job.join()` | `future.get()`（但 `join()` 不抛业务异常，异常在 await 处） |
+
+### 8. 实战：为什么 `viewModelScope` 用 `SupervisorJob`
+
+`viewModelScope` / `lifecycleScope` 内部本质上是 `SupervisorJob() + Dispatchers.Main.immediate`。所以你在 ViewModel 里写多个 `viewModelScope.launch { }`，**一个崩溃不会连坐其它**——这正是日常开发默认就安全的原因。前面「协程异常处理」里 `BaseViewModel` 用 `SupervisorJob()` 也是同一个用意：一个协程崩溃，同 VM 的其它协程照常工作。
+
 ## 面试高频
 
 > **Q: 结构化并发解决了什么问题？**
@@ -1003,59 +1508,253 @@ viewModelScope.cancel()
 
 ## 传播规则
 
+> 下面例子里的 `throw` 只是"占位"——真实业务里异常来自你调用的代码（网络超时抛 `IOException`、`response.body()!!` 空指针抛 NPE、JSON 解析失败抛异常……）。**异常怎么传播，和你是手写 `throw` 还是业务代码抛，完全一样。** 你真正该搞清楚的是：异常"不捕获"时，到底去哪了。
+
+### 规则 1：launch 的异常 → 向上传播，并取消兄弟协程
+
 ```kotlin
-// 规则 1：launch 的异常 → 默认向上传播到父协程
-viewModelScope.launch {
+// 真实业务版（不是手写 throw，而是业务调用本身可能崩）
+viewModelScope.launch {                 // 父 launch（普通的 Job）
     launch {
-        throw RuntimeException("出错了")  // 这个异常会传播给父协程
+        val user = api.getUser()        // 假设这里网络断了 → 抛 IOException
     }
     launch {
-        // 也被取消了！因为父协程收到了子协程的异常
+        val files = fileRepo.list()     // 上面的异常会让这个也"被取消"！
     }
 }
+```
 
-// 规则 2：async 的异常 → await() 时才抛出
+发生了什么：
+1. 子协程 A 抛异常 → 上抛给父 launch。
+2. 父 launch 是普通 `Job`（不是 supervisor），收到异常 → **自己被取消，并顺带取消兄弟 B**。
+3. 异常继续上抛到 `viewModelScope`（它是 `SupervisorJob`，**不会**再取消其它顶层协程，但异常依然没被处理）。
+4. **没有任何 try-catch、也没有 CoroutineExceptionHandler → 异常交给平台默认处理器 → 在 Android 上就是 App 崩溃（红屏），堆栈打印在 Logcat（tag `AndroidRuntime`）。**
+
+> 你问"崩溃的 log 该打印在哪看不出来"——答案就是：**不处理的话，它直接变成应用崩溃**，日志在 Logcat 的 `AndroidRuntime` 里，而且 App 已经死了。所以"兜底"不是可选项，必须写。
+
+### 规则 2：async 的异常 → 在 await() 时才抛出
+
+```kotlin
 viewModelScope.launch {
     val deferred = async {
-        throw RuntimeException("出错了")
+        api.getUser()                    // 这里崩，异常被"存"进 deferred
     }
-    // 这时候还没事，异常还没抛出
-    deferred.await()  // 在这里才抛出异常
+    // 此刻还没事，异常被 deferred 收着
+    val user = deferred.await()          // ← 在这里才真正抛出，必须 try-catch
+}
+```
+
+> `async` 把异常"寄存"在 `Deferred` 里，直到 `await()` 才释放。所以 `async` 的异常**必须在 `await()` 处 try-catch**（handler 接不住，见后文）。
+
+### 规则 3（核心）：兜底到底写哪？两个正确姿势
+
+**姿势 A — 预期的业务错误：在调用处 try-catch，转成 UiState（这是"正常"的兜底位置）**
+
+```kotlin
+viewModelScope.launch {
+    _state.value = UiState.Loading
+    try {
+        val user = api.getUser()        // 可能抛（网络/解析）
+        _state.value = UiState.Success(user)
+    } catch (e: Exception) {
+        // ✅ 这里就是"日志 + 提示"该写的地方：
+        Log.e("LoginVm", "加载用户失败", e)                    // 日志 → Logcat
+        _state.value = UiState.Error(e.message ?: "加载失败")  // 提示 → UI 层 collect 后显示
+    }
+}
+// UI 层：state.collect { when(it) { is Error -> showToast(it.msg) } }
+```
+
+**姿势 B — 意料之外的崩溃：交给全局 CoroutineExceptionHandler（见下一节）**
+当你没预判到的 bug（如某处 `null!!`）导致崩溃、没有 try-catch 接住时，由 BaseViewModel 里装的 `globalExceptionHandler` 兜底——它记日志 + 发到 `ErrorEventBus`，在根 Activity 一处弹 Toast。**你不用在每个 ViewModel 里手写兜底，handler 自动接管。**
+
+### 对照：不处理 vs 处理
+
+```kotlin
+// ❌ 不处理：某个业务调用崩 → 协程取消 + 兄弟被取消 + App 崩溃
+viewModelScope.launch {
+    launch { riskyApi.callA() }   // 崩了
+    launch { doSomethingElse() }  // 被连累取消
 }
 
-// 规则 3：try-catch 和 CoroutineExceptionHandler
-viewModelScope.launch {
-    try {
-        repository.fetchData()
-    } catch (e: Exception) {
-        // 捕获协程内的异常
-        _state.value = UiState.Error(e.message ?: "未知错误")
-    }
+// ✅ 处理（预期错误各自接住；彼此独立用顶层 launch，避免一个崩连累另一个）
+viewModelScope.launch {           // 顶层1
+    try { riskyApi.callA() } catch (e: Exception) { _state.value = UiState.Error(e.message) }
+}
+viewModelScope.launch {           // 顶层2（SupervisorJob 隔离，互不影响）
+    try { doSomethingElse() } catch (e: Exception) { _state.value = UiState.Error(e.message) }
 }
 ```
 
 ## CoroutineExceptionHandler
 
-```kotlin
-// 全局异常处理器（只在 launch 中生效，async 不行）
-val handler = CoroutineExceptionHandler { _, throwable ->
-    Log.e("TAG", "协程异常: ${throwable.message}")
-}
+`CoroutineExceptionHandler` 是协程**未捕获异常**的兜底处理器——类似 Java 的 `Thread.setDefaultUncaughtExceptionHandler`，但作用在协程作用域上。它解决两个问题：**① 异常没被 try-catch 兜住时，阻止 App 崩溃；② 把散落在各处的异常集中到一处处理。**
 
-// 只捕获 launch 的未捕获异常（async 的异常要 await()）
-viewModelScope.launch(handler) {
-    // 发生异常 → handler 捕获 → 不崩溃
-    throw RuntimeException("测试异常")
-}
+### 它和 try-catch 怎么分工？（关键认知）
 
-// 注意：如果异常被 try-catch 捕获了，handler 就不会触发
+异常在协程里的传递路径是这样的：
+
 ```
+子协程 throw
+   ↓ 向上传播
+父协程 / 作用域
+   ↓ 如果某层有 try-catch → 被捕获，handler 不触发（你预期的、业务错误）
+   ↓ 如果一路没人 catch，到达「根协程」
+   ↓ 根协程的 context 里有 CoroutineExceptionHandler？
+       是 → handler 触发（兜底，Unexpected 崩溃）
+       否 → 抛给平台 → App 崩溃
+```
+
+- **try-catch**：处理「预期内、业务相关」的错误（如网络 4xx、空数据）→ 转成 `UiState.Error` 显示。
+- **CoroutineExceptionHandler**：处理「意料之外」的崩溃（如你没预判到的 NPE bug）→ 记日志 + 给个兜底提示，**不让 App 崩**。
+
+> 经验：**handler 不是用来替代 try-catch 的**，它是"最后的安全网"。正常业务错误用 try-catch 转 UI 状态；handler 只接住你漏掉的意外。
+
+### 坑 1：handler 只对「根协程」生效，装在子协程上没用
+
+```kotlin
+// ❌ 错误：handler 装在子协程上，不会触发
+viewModelScope.launch {
+    launch(handler) {              // 子协程不是"根"，handler 被忽略
+        throw RuntimeException("err")
+    }
+}   // 异常一路上抛到 viewModelScope，viewModelScope 没 handler → 崩溃
+
+// ✅ 正确：handler 装在根协程（直接挂在 scope 上）
+viewModelScope.launch(handler) {   // 这是根协程，handler 生效
+    launch {
+        throw RuntimeException("err")   // 异常上抛到根 → handler 接住
+    }
+}
+```
+
+### 坑 2：handler 接不住 async 的异常
+
+`async` 把异常存进 `Deferred`，等到 `await()` 才抛。所以 handler 对 `async` 无效，必须用 try-catch 包住 `await()`：
+
+```kotlin
+viewModelScope.launch(handler) {
+    val d = async { throw RuntimeException("err") }
+    try {
+        d.await()                  // 在这里捕获 async 的异常
+    } catch (e: Exception) {
+        _state.value = UiState.Error(e.message)
+    }
+}
+```
+
+### 实战：多个 ViewModel 共用同一个 handler，错误统一在一处提示
+
+这才是你关心的"全局、统一"做法。三个角色：**一个共享 handler → 一个错误事件总线 → 一处订阅展示**。
+
+**第一步：定义全局唯一的 handler + 错误事件总线（单例）**
+
+```kotlin
+// 错误事件总线：handler 把异常丢进来，UI 层统一订阅
+object ErrorEventBus {
+    private val _errors = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val errors: SharedFlow<String> = _errors.asSharedFlow()
+    fun post(msg: String) = _errors.tryEmit(msg)
+}
+
+// 全局唯一 handler：只负责「收异常 → 记日志 → 丢进总线」
+val globalExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+    Log.e("Global", "未捕获协程异常: ${throwable.message}", throwable)
+    ErrorEventBus.post(throwable.message ?: "发生未知错误")
+}
+```
+
+> **`globalExceptionHandler` 在哪定义的？为什么 BaseViewModel 能读到？**
+> 它和 `ErrorEventBus` 都是**顶层声明（top-level，写在文件最外层、不在任何 class 内）**，放在一个独立的全局文件里（例如 `core/GlobalExceptionHandler.kt`）。文档为了"分步讲解"把它们拆成了两个代码块，但真实项目里它们就是两个相邻文件：
+>
+> ```kotlin
+> // core/GlobalExceptionHandler.kt  ← 独立的顶层文件
+> object ErrorEventBus {                 // 顶层单例
+>     private val _errors = MutableSharedFlow<String>(extraBufferCapacity = 1)
+>     val errors: SharedFlow<String> = _errors.asSharedFlow()
+>     fun post(msg: String) = _errors.tryEmit(msg)
+> }
+>
+> val globalExceptionHandler = CoroutineExceptionHandler { _, t ->   // 顶层 val
+>     Log.e("Global", "未捕获协程异常: ${t.message}", t)
+>     ErrorEventBus.post(t.message ?: "发生未知错误")
+> }
+> ```
+>
+> **关键点：Kotlin 顶层 `val` / `object` 编译后变成 `GlobalExceptionHandlerKt.globalExceptionHandler`，属于整个 module，不是某个类的成员。** 只要 `BaseViewModel`（在 `BaseViewModel.kt`）和这个文件在**同一个 module、同一个包（或手动 `import`）**，就能直接写名字引用——这正是第二步 `BaseViewModel` 的 `safeScope` 能读到它的原因。不需要 `static`、不需要单例包裹、不需要依赖注入，顶层声明天生全局可见。
+
+**第二步：BaseViewModel 把 handler 装进自己的作用域，所有 VM 继承它**
+
+```kotlin
+// 方式 A（推荐）：自定义 safeScope，用 SupervisorJob 防止一个失败取消其它协程
+abstract class BaseViewModel : ViewModel() {
+    // SupervisorJob：子协程互不影响；handler：统一兜底
+    protected val safeScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main.immediate + globalExceptionHandler
+    )
+
+    override fun onCleared() {
+        super.onCleared()
+        safeScope.cancel()          // 等价于 viewModelScope 的自动取消
+    }
+
+    // 顺手包一个 safeLaunch，调用更省事
+    protected fun safeLaunch(block: suspend CoroutineScope.() -> Unit) =
+        safeScope.launch(block = block)
+}
+
+// 方式 B（想保留 viewModelScope 的自动取消）：包一层即可
+abstract class BaseViewModel2 : ViewModel() {
+    protected fun safeLaunch(block: suspend CoroutineScope.() -> Unit) =
+        viewModelScope.launch(globalExceptionHandler, block = block)
+}
+
+// 具体 ViewModel：完全不用关心 handler，直接抛异常就走统一处理
+class LoginViewModel : BaseViewModel() {
+    fun login() = safeLaunch {
+        throw RuntimeException("登录失败")   // → globalExceptionHandler → 总线
+    }
+}
+
+class FileViewModel : BaseViewModel() {
+    fun load() = safeLaunch {
+        throw RuntimeException("加载失败")    // → 同一个 handler
+    }
+}
+```
+
+**第三步：在根 Activity / 根 Composable 统一订阅总线，一处弹错误**
+
+```kotlin
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // 整个 App 的错误，只在这一个地方展示
+        lifecycleScope.launch {
+            ErrorEventBus.errors.collect { msg ->
+                Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                // 或 Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+}
+```
+
+这样：**任意 ViewModel 抛出的未捕获异常 → 统一进 `globalExceptionHandler` → 进 `ErrorEventBus` → 只在 MainActivity 一个地方弹 Toast/Snackbar**。handler 只写一次，所有 VM 复用；`SupervisorJob` 保证一个 VM 内某个协程崩溃不会连累其它协程。
+
+### Java 对标
+
+| Kotlin | Java |
+|--------|------|
+| `CoroutineExceptionHandler` | `Thread.setDefaultUncaughtExceptionHandler` / `Thread.UncaughtExceptionHandler` |
+| `try-catch` 转 `UiState.Error` | 方法内 `try-catch` 返回 `Result` / `Optional` |
+| `ErrorEventBus` 集中展示 | 观察者 / EventBus（如 `LiveData`、`RxJava Subject`） |
 
 ## 面试高频
 
 > **Q: 协程的异常怎么处理？和 Java try-catch 有什么区别？**
 >
-> A: 基本原则：**try-catch 捕获协程体内部的异常**（和在 Java 里一样），`CoroutineExceptionHandler` 捕获**未被 try-catch 捕获的异常**（类似 Java 的 `Thread.setDefaultUncaughtExceptionHandler`）。注意：`launch` 的异常默认向上传播，`async` 的异常在 `await()` 时抛出。**实战中，ViewModel 层用 try-catch 捕获异常转为 UiState.Error，不靠全局处理器。**
+> A: 基本原则：**try-catch 捕获协程体内部的异常**（和在 Java 里一样），`CoroutineExceptionHandler` 捕获**未被 try-catch 捕获的异常**（类似 Java 的 `Thread.setDefaultUncaughtExceptionHandler`）。注意：`launch` 的异常默认向上传播，`async` 的异常在 `await()` 时抛出。**实战中，ViewModel 层用 try-catch 捕获业务异常转为 UiState.Error（这是主路径）；而 `CoroutineExceptionHandler` 作为「安全网」装在 BaseViewModel 的作用域上（配 SupervisorJob + 错误事件总线），兜底意料之外的崩溃并统一在一处提示，它不替代 try-catch、也不用于正常业务错误。**
 
 ---
 
@@ -1103,6 +1802,50 @@ lifecycleScope.launch {
 }
 ```
 
+## 冷流的本质（为什么不消费不生产）
+
+Flow 是**冷流（Cold Stream）**，这是它和很多数据流最大的区别，也是最容易记混的点：
+
+- **只有调用 `collect { }` 时，上游代码才会执行**；你不收集，它就不产生任何数据——像一条「懒加载的流水线」。
+- **每个收集者都触发一次完整的生产**：同一个 Flow 被 collect 两次，上游的 `flow { ... }` 代码就跑两遍，两份独立的数据序列，互不干扰。
+
+Java 对照：非常像 Java 8 的 `Stream`——你不调用终止操作（如 `collect()`/`reduce()`），中间操作一行都不执行。区别是 Flow 是**异步的、可挂起的** Stream，能跨线程发射。
+
+```kotlin
+val newsFlow = getLatestNews()      // 这行只是"声明"流，啥都没发生
+lifecycleScope.launch {
+    newsFlow.collect { ... }        // ① 第一次 collect → 上游从头跑一遍
+}
+lifecycleScope.launch {
+    newsFlow.collect { ... }        // ② 第二次 collect → 上游又从头跑一遍
+}
+```
+
+> 🔑 口诀：**冷流 = 懒 + 私有**。不消费不生产，谁消费谁独占一份。热流（StateFlow/SharedFlow）正好相反——不消费也生产、多订阅者共享同一份。
+
+## 背压：suspend 天然解决
+
+**背压（Backpressure）**：生产者发数据的速度，远大于消费者处理的速度，数据越堆越多 → 内存暴涨 → OOM。
+
+- **RxJava** 要解决这个问题，得手动选策略：`onBackpressureBuffer`（缓存）、`onBackpressureDrop`（丢弃）……
+- **Flow** 靠 `suspend` 自动搞定：`emit()` 本身是一个**挂起函数**。下游 `collect` 正在忙（处于挂起中），上游的 `emit` 就**自动跟着挂起**，等下游腾出手才继续发。根本不需要你写溢出策略。
+
+```kotlin
+flow {
+    while (true) {
+        emit(produceItem())   // 如果下游慢，这里自动挂起，不会堆积
+    }
+}.collect { item ->
+    delay(1000)               // 下游处理很慢
+    process(item)
+}
+```
+
+常用背压操作符（仍是基于 suspend，只是换个策略）：
+- `buffer(n)`：开一个 n 大小的缓冲，生产消费并行，提升吞吐
+- `conflate()`：只保留最新值，丢弃中间来不及处理的（类似 LiveData 行为）
+- `collectLatest { }`：新数据到来时，立刻取消正在进行的旧数据处理
+
 ## Flow vs LiveData
 
 ```kotlin
@@ -1131,6 +1874,24 @@ class MyViewModel : ViewModel() {
     }
 }
 ```
+
+## 与 RxJava 对照
+
+很多 Android 老项目是 RxJava 写的，面试常问「Flow 和 RxJava 有啥区别」。本质上是同一件事（响应式数据流）的两套实现：
+
+| Kotlin Flow | RxJava | 说明 |
+|-------------|--------|------|
+| `Flow`（冷流） | `Observable` / `Flowable` | 数据流本体 |
+| `StateFlow` | `BehaviorSubject` | 持有最新状态，新订阅立即拿到 |
+| `SharedFlow` | `PublishSubject` / `ReplaySubject` | 事件广播 |
+| `flow { emit() }` | `Observable.create()` | 创建流 |
+| `map` / `filter` / `debounce` / `flatMap` | 同名操作符 | 操作符基本一一对应 |
+| `flowOn(Dispatchers.IO)` | `subscribeOn(Schedulers.io())` + `observeOn()` | 切线程（flowOn 只影响上游） |
+| `suspend` 自动背压 | `onBackpressureBuffer/Drop` | 背压处理 |
+| `CoroutineScope` 取消 | `Disposable.dispose()` | 取消订阅 |
+| `catch { }` | `onErrorResumeNext()` | 异常恢复 |
+
+> 一句话：Flow 不是来「取代」RxJava 所有功能的，而是用协程的 `suspend` 把响应式编程**变简单**了——背压靠挂起自动解决，取消靠作用域自动管理，不用你手动 `dispose`。
 
 ## Flow 操作符链
 
