@@ -1908,45 +1908,69 @@ class DataManager {
 
 ## Flow = 协程里的序列
 
-```kotlin
-// Flow：按顺序发射多个值的「冷流」数据流
+Flow 是「按顺序发射多个值」的数据流。但要真正看懂它，**必须先看完整条数据链**——否则就会像很多教程（包括旧版这份）那样，`flow { ... }` 定义在一边、`collect` 收集的却是另一个 `viewModel.latestNews`，中间断掉一层，看得人云里雾里。
 
-// 创建 Flow
-fun getLatestNews(): Flow<News> = flow {
-    while (true) {
-        val latest = api.fetchLatestNews()
-        emit(latest)              // 发射数据
-        delay(5000)               // 5 秒后再次获取
+下面是真实 Android 项目里 Flow 的完整三段：**Repository 造流 → ViewModel 转流 → View 收流**。
+
+```kotlin
+// ① Repository：用 flow { } 创建一个冷流（这里只管"怎么产数据"）
+class NewsRepository(private val api: NewsApi) {
+    fun getLatestNews(): Flow<List<News>> = flow {
+        while (true) {
+            val latest = api.fetchLatestNews()   // 拉一次数据
+            emit(latest)                          // 发射给下游
+            delay(5000)                           // 歇 5 秒再拉下一轮
+        }
     }
 }
 
-// 收集 Flow（冷流：只有调用 collect 才执行）
+// ② ViewModel：把冷流转成 StateFlow（热流），交给 UI 用
+class NewsViewModel(repo: NewsRepository) : ViewModel() {
+    val latestNews: StateFlow<List<News>> = repo
+        .getLatestNews()                          // ← 这就是上面那个 flow
+        .stateIn(                                 // 冷流转热流
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+}
+
+// ③ View（Activity/Fragment）：收集 StateFlow，刷新 UI
 lifecycleScope.launch {
-    viewModel.latestNews.collect { news ->
-        // 每次有新数据，自动更新 UI
-        newsAdapter.submitList(news)
+    viewModel.latestNews.collect { news ->        // ← 收集的是 ② 暴露的那个
+        newsAdapter.submitList(news)              // 每 emit 一次就刷新一次
     }
 }
 ```
 
-## 冷流的本质（为什么不消费不生产）
+现在回头看那句困惑你的话——`viewModel.latestNews` 和 `getLatestNews()` 的关系就清楚了：
 
-Flow 是**冷流（Cold Stream）**，这是它和很多数据流最大的区别，也是最容易记混的点：
+- `getLatestNews()` 是**源头**，定义在 Repository，返回一个**冷流** `Flow`；
+- `viewModel.latestNews` 是**ViewModel 转手后的产物**，它内部就是 `getLatestNews()` 经过 `stateIn()` 转成的**热流** `StateFlow`；
+- 二者是**同一条数据链的上下游**，不是两个独立的东西。旧版文档把它们分在两段代码里、中间没连起来，所以才会看不懂。
 
-- **只有调用 `collect { }` 时，上游代码才会执行**；你不收集，它就不产生任何数据——像一条「懒加载的流水线」。
-- **每个收集者都触发一次完整的生产**：同一个 Flow 被 collect 两次，上游的 `flow { ... }` 代码就跑两遍，两份独立的数据序列，互不干扰。
+## 冷流的本质：「只有 collect 才执行」到底指什么
+
+Flow 是**冷流（Cold Stream）**。这句话最容易被误读成"只发射一次"，其实它说的是**"什么时候开始"**，而不是"只跑一遍"：
+
+- **懒启动**：上游 `flow { ... }` 那段生产代码，只有在有人 `collect` 时才开始执行。你不收集，它一行都不跑——像一条没通电的流水线。
+- **启动后按自己的节奏持续发射**：一旦 `collect` 触发了启动，`while(true)` + `emit` + `delay(5000)` 就会一直循环下去。所以上面 ③ 里的 `submitList(news)` 是**每 ~5 秒触发一次**，不是只触发一次。
+
+一句话拆开：**冷流决定"跑不跑"（懒），发射频率由 `emit`/`delay` 决定（跟冷不冷无关）。**
 
 Java 对照：非常像 Java 8 的 `Stream`——你不调用终止操作（如 `collect()`/`reduce()`），中间操作一行都不执行。区别是 Flow 是**异步的、可挂起的** Stream，能跨线程发射。
 
 ```kotlin
-val newsFlow = getLatestNews()      // 这行只是"声明"流，啥都没发生
+val newsFlow = repo.getLatestNews()  // 这行只是"声明"流，啥都没发生（懒）
 lifecycleScope.launch {
-    newsFlow.collect { ... }        // ① 第一次 collect → 上游从头跑一遍
+    newsFlow.collect { ... }         // ① 第一次 collect → 上游从头跑一遍
 }
 lifecycleScope.launch {
-    newsFlow.collect { ... }        // ② 第二次 collect → 上游又从头跑一遍
+    newsFlow.collect { ... }         // ② 第二次 collect → 上游又从头独立跑一遍
 }
 ```
+
+注意 ②：**每个收集者都触发一次完整的生产**。同一个冷流被 collect 两次，上游 `flow { ... }` 就跑两遍，两份独立的数据序列、互不干扰（这里是两份独立的 5 秒轮询）。这正是冷流和热流的本质区别——也是为什么 ViewModel 要用 `stateIn` 转成 StateFlow：**让多个 UI 订阅者共享同一份数据，而不是各起一份轮询**。
 
 > 🔑 口诀：**冷流 = 懒 + 私有**。不消费不生产，谁消费谁独占一份。热流（StateFlow/SharedFlow）正好相反——不消费也生产、多订阅者共享同一份。
 
