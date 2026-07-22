@@ -1164,13 +1164,13 @@ class UserRepository(
     private val api: UserApi = RetrofitClient.api,
     private val dao: UserDao = AppDatabase.getInstance().userDao()
 ) {
-    // 缓存策略：先查 Room 缓存，再查网络，网络成功更新 Room
+    // 缓存策略：【先缓存 + 强制刷网络】即 stale-while-revalidate
     fun getUser(id: String): Flow<Result<User>> = flow {
         // 1. 先发缓存
         val cached = dao.getUser(id)
         if (cached != null) emit(Result.success(cached))
 
-        // 2. 再查网络
+        // 2. 再查网络（本策略下这一步总会执行，不论上面是否命中缓存）
         try {
             val response = api.getUser(id)
             dao.insert(response)  // 缓存到本地
@@ -1257,6 +1257,9 @@ class TaskViewModel(
         // 自动监听数据库变化
         viewModelScope.launch {
             repository.allTasks.collect { tasks ->
+                // update 来自 kotlinx.coroutines.flow 的扩展函数 MutableStateFlow.update
+                // （需 import kotlinx.coroutines.flow.update；内部用 compareAndSet 原子读改写，避免并发更新互相覆盖）
+                // it 是当前 TaskUiState，copy() 由 data class 自动生成，只改 tasks/isLoading 两个字段
                 _uiState.update { it.copy(tasks = tasks, isLoading = false) }
             }
         }
