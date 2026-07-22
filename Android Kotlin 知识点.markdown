@@ -228,6 +228,37 @@ public class Result<T> {
 }
 ```
 
+## Java enum：比 int 常量好，但仍受限
+
+```java
+// 用枚举替代 int 常量：type 只能取枚举定义的值，不能随意赋 3/4/5
+public enum ResultType { LOADING, SUCCESS, ERROR }
+
+public class Result<T> {
+    public ResultType type;
+    public T data;
+    public String errorMsg;
+
+    // 处理时若漏写分支，Java 的 switch 不会编译报错，只能靠 default 兜底
+    void handle() {
+        switch (type) {
+            case LOADING: showLoading();   break;
+            case SUCCESS: showData(data);  break;
+            case ERROR:   showError(errorMsg); break;
+            // 漏掉某个分支 → 编译不报错，最多走 default（不写 default 也只是告警）
+        }
+    }
+}
+```
+
+- ✅ 比 int 常量好：`type` 只能取枚举定义的有限值，杜绝了「赋任意整数」的低级 bug。
+- ❌ 但仍受限（这正是 Kotlin `sealed class` 要解决的）：
+  1. **每个枚举值是单例**，所有地方共享同一实例，无法像 `Success<T>(data)` 那样各自携带**不同类型**的数据；
+  2. 枚举的构造参数在**所有枚举值间是同一套**，不能让 `Success` 带 `data`、`Error` 带 `message` 这种**不同形参**；
+  3. `switch` 处理枚举**不强制穷举**，漏分支编译期不报（除非配 `default` 或第三方检查），仍有漏处理风险。
+
+> 一句话：Java enum 解决了「取值安全」，但没解决「带异构数据 + 编译期强制穷举」——后者才是 `sealed class` 的杀手锏。
+
 ## Kotlin sealed class
 
 ```kotlin
@@ -288,7 +319,7 @@ static <T> void handle(Result<T> r) {
 
 ## 穷举的原理 & 易记口诀
 
-为什么 `when(result)` 能**强制**你写全所有分支？因为编译器知道 `sealed class` 的**全部子类**——它们必须定义在同一文件（或同一编译单元）内，编译器在编译期就能数清楚有几个"叶子"。
+为什么 `when(result)` 能**强制**你写全所有分支？因为编译器知道 `sealed class` 的**全部子类**——它们必须定义在同一 module 的同一 package 内（早期版本曾要求同文件，位置规则详见后文「子类的位置规则」一节），编译器在编译期就能数清楚有几个"叶子"。
 
 这带来一个 Java `int` 常量/`enum` 都给不了的好处：
 
@@ -335,6 +366,102 @@ class FileViewModel : ViewModel() {
     }
 }
 ```
+
+## when 作表达式 vs 语句：穷举是有条件的（★大坑）
+
+> ⚠️ 本文前面说「`when(result)` 会强制穷举」——**这句话不完整，是最容易在面试翻车的地方**。穷举只在 `when` 作为**表达式**时才被硬强制；作为语句时有历史遗留的宽松期。
+
+```kotlin
+// ① when 作为「表达式」：有返回值 / 被赋值 → 强制穷举，漏分支必编译报错
+val msg = when (result) {
+    is Result.Success -> "ok"
+    is Result.Error   -> "fail"
+    is Result.Loading -> "loading"
+}   // 漏掉任意一个分支 → 编译错误 ✅
+
+// ② when 作为「语句」：不取返回值 → Kotlin 1.6 之前【不强制】，漏分支静默通过！
+when (result) {
+    is Result.Success -> showFiles()
+    is Result.Error   -> showError()
+    // 漏了 Loading，1.6 之前编译器一声不吭 ❌ → 线上漏处理
+}
+```
+
+- **Kotlin 1.7 起**：对 sealed class 的 `when` **语句**也会给出穷举警告（可配置为 error），但本质机制仍是「表达式才硬强制」。
+- **面试小技巧**：想百分百强制穷举，让 `when` 变成表达式即可——写成 `val x = when(...) {}` 或在末尾 `.let {}`，漏分支立刻编译报错，比依赖编译器配置更稳。
+
+## out T + Nothing 的协变技巧：为什么 Loading 能是 Result<Nothing>
+
+> 前面代码里写了 `Result<out T>`、`Error : Result<Nothing>`，但没解释**为什么**。这是泛型 + sealed 的经典考点。
+
+```kotlin
+sealed class Result<out T> {                     // out = 协变：Result<Success> 可当作 Result<Any> 使用
+    data class Success<T>(val data: T) : Result<T>()
+    data object Loading : Result<Nothing>()      // Loading 不带数据，用 Nothing
+}
+```
+
+- `Nothing` 是 Kotlin 里**所有类型的子类型**（底类型）。配合 `out` 协变，`Result<Nothing>` 就能安全赋给任意 `Result<T>`。
+- **好处**：`Loading` / `Error` 这种无参状态可以做成**全局单例**（`data object`），不用为每个 `T` 各 `new` 一个实例，节省内存也更语义清晰。
+
+## data object（Kotlin 1.9）：为什么用 data object 而不是 object
+
+```kotlin
+data object Loading : Result<Nothing>()
+```
+
+- `object` 本身是**单例**；加 `data` 前缀后，Kotlin 会为它自动生成**规范的 `toString()`**（打印 `Loading` 而不是 `Result$Loading@1a2b3c`），以及基于类型的 `equals()` / `hashCode()`。
+- **Kotlin 1.9 才稳定**。`1.9` 之前只能写 `object Loading`，日志和相等判断体验都很差。
+- **面试可答**：`data object` 是 1.9 稳定的语法糖，专为 sealed class 里「无参、单例的状态节点」（如 Loading / Empty / Idle）设计。
+
+## sealed class 可以有共享成员与抽象方法
+
+> 前面把 sealed class 当纯「标签」用，漏了它本质是**类**，能放共享逻辑——这是面试加分点。
+
+```kotlin
+sealed class Screen(val route: String) {          // 共享构造参数：所有子类都带 route
+    data object Home   : Screen("home")
+    data object Detail : Screen("detail")
+
+    abstract fun title(): String                  // 抽象方法：子类各自实现
+    fun fullPath() = "app://$route"               // 共享方法：所有子类复用
+}
+```
+
+- 子类可以共享父类的属性、方法；也可以声明 `abstract` 成员强制子类实现。
+- 对比：`enum` 也能有成员，但每个枚举值都是同一个类、不能各自带**不同类型**的构造参数——这正是 sealed 胜出的地方。
+
+## 子类的位置规则（1.5+）与底层实现
+
+### 位置规则（前文「必须同一文件」已过时）
+- **Kotlin 1.1–1.4**：sealed 的直接子类必须写在**同一个 `.kt` 文件**里。
+- **Kotlin 1.5 起**：放宽为**同一个 module 的同一个 package**（可拆到多个文件）。
+- 跨 package / 跨 module 仍然禁止——否则编译器数不清「叶子」，穷举保证就失效了。
+
+### 底层实现原理
+- sealed class 编译后 = 一个 **`abstract class` + 私有（private）构造函数**。
+- 因为构造函数私有，外部代码无法 `new` 一个子类，也无法在别的包里继承它——这就是「封闭继承树」的实现机制。
+- 也正是「私有构造 + 同包可见」让编译器能在编译期静态枚举所有子类，从而提供穷举检查。
+
+> 📌 前文「穷举的原理」一节已同步更正为「同 module 同 package（早期版本曾要求同文件）」。
+
+## sealed interface（1.5+）与三大应用场景
+
+### sealed interface：比 sealed class 更灵活
+```kotlin
+sealed interface UiEvent                              // 纯状态标记，没有类层级包袱
+data class Navigate(val route: String) : UiEvent
+data object Refresh : UiEvent
+```
+- **sealed class 是单继承**：一个子类只能属于一个 sealed 父类。
+- **sealed interface 可多实现**：一个类能同时 `implements` 多个 sealed interface，组合更自由。做纯「事件 / 标记」时更常用 interface。
+
+### 三大典型应用场景（面试常让举例）
+1. **UI 状态**：`UiState`（Idle / Loading / Success<T> / Error）——你项目里 `FileViewModel` 用的就是这招。
+2. **网络结果**：`Result`（Success / Error / Loading），替代 Java 的 int 常量。
+3. **MVI 架构的 Intent / Event**：用户意图、一次性事件（如 `ShowToast` / `Navigate`）用 sealed 建模最合适，配合 `when` 穷举处理，绝不会漏事件。
+
+> 💡 **sealed class vs sealed interface 选型**：需要共享状态/方法 → sealed class；只是纯标记、且可能多继承 → sealed interface。
 
 ## 面试高频
 
