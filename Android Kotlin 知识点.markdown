@@ -844,7 +844,7 @@ class FileListViewModel(repository: FileRepository) : ViewModel() {
 
 > **Q: Flow 是什么？和 LiveData 有什么区别？**
 >
-> A: Flow 是 Kotlin 协程中的冷数据流，可以发射多个值。**区别**：① Flow 不是生命周期感知的，需要配合 `repeatOnLifecycle` 或 `collectAsStateWithLifecycle`；LiveData 内置生命周期感知 ② Flow 操作符丰富（map/filter/combine/zip 等），LiveData 只有 map/switchMap ③ Flow 支持线程切换（flowOn），LiveData 只能在主线程 observe ④ **新趋势**：Room/DataStore/Retrofit 对 Flow 的支持更好。**推荐原则**：ViewModel 层用 StateFlow，View 层用 `collectAsStateWithLifecycle` 收集。
+> A: Flow 是 Kotlin 协程中的冷数据流，可以发射多个值。**区别**：① Flow 不是生命周期感知的，需要配合 `repeatOnLifecycle` 或 `collectAsStateWithLifecycle`；LiveData 内置生命周期感知 ② Flow 操作符丰富（map/filter/combine/zip 等），LiveData 只有 map/switchMap ③ Flow 支持线程切换（flowOn），LiveData 只能在主线程 observe ④ **新趋势**：Room/DataStore/Retrofit 对 Flow 的支持更好。**推荐原则**：ViewModel 层用 StateFlow，View 层用 `collectAsStateWithLifecycle` 收集。**View 层两种收集方式的完整配对 Demo 见第六章「View 层怎么收集 StateFlow」**。
 
 ---
 
@@ -906,6 +906,78 @@ class MainActivity : AppCompatActivity() {
     }
 }
 ```
+
+## View 层怎么收集 StateFlow（生命周期感知完整 Demo）
+
+Flow / StateFlow 本身**不感知生命周期**——若在 `onCreate` 里直接 `lifecycleScope.launch { collect }`，Activity 退到后台甚至销毁后还在收集，既浪费又可能崩溃。所以 View 层必须套一层「生命周期感知」的收集方式。按 UI 技术栈分两种：
+
+### 方式一：View 体系（Activity / Fragment + XML）→ `repeatOnLifecycle`
+
+```kotlin
+// 依赖：implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.6.x"
+
+// ViewModel：暴露 StateFlow（同上）
+class TimerViewModel : ViewModel() {
+    private val _uiState = MutableStateFlow(TimerUiState())
+    val uiState: StateFlow<TimerUiState> = _uiState.asStateFlow()
+}
+
+// Activity：用 repeatOnLifecycle 包住 collect
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // ... binding 初始化 ...
+
+        lifecycleScope.launch {
+            // repeatOnLifecycle 是个挂起函数：挂起直到进入 STARTED 才开始收集，
+            // 离开 STARTED（如退到后台）自动取消上游 collect，回到前台再重新收集
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    updateUI(state)      // 只在 STARTED~RESUMED 之间执行
+                }
+            }
+        }
+    }
+}
+```
+
+**关键点（面试必问）**：
+- `repeatOnLifecycle` 必须放在 `lifecycleScope.launch` 里——它本身是挂起函数，得有协程承载。
+- `Lifecycle.State.STARTED` 表示「可见且能交互」窗口；退到后台自动停 collect，回前台自动重开。
+- **常见错误**：直接 `lifecycleScope.launch { viewModel.uiState.collect { ... } }` 不加 `repeatOnLifecycle` —— 退后台还在收，配置变更时还会重复收集。
+
+### 方式二：Jetpack Compose → `collectAsStateWithLifecycle`
+
+```kotlin
+// 依赖：
+// implementation "androidx.lifecycle:lifecycle-runtime-compose:2.6.x"
+// （注意是 lifecycle-runtime-compose，不是 -ktx）
+
+@Composable
+fun TimerScreen(viewModel: TimerViewModel = viewModel()) {
+    // collectAsStateWithLifecycle：进入组合时收集，离开组合 / 不可见时自动停止
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    when (uiState) {
+        is TimerUiState.Running -> RunningView(/* ... */)
+        is TimerUiState.Idle    -> IdleView(/* ... */)
+    }
+}
+```
+
+**关键点**：
+- `collectAsStateWithLifecycle()` 返回的是 `State<T>`，配合 Compose 的重组机制自动刷新 UI。
+- 它内部就是按生命周期安全收集的，**不需要**再套 `repeatOnLifecycle`（Compose 里也没有 `lifecycleScope` 那套）。
+- 对比旧版 `collectAsState()`：后者不感知生命周期，App 退后台还在收集。Google 现在推荐一律用 `collectAsStateWithLifecycle`。
+
+### 配对关系一图记
+
+| UI 技术栈 | ViewModel 暴露 | View 层收集方式 |
+| :--- | :--- | :--- |
+| View 体系（XML） | `StateFlow` | `lifecycleScope.launch { repeatOnLifecycle(STARTED) { flow.collect { } } }` |
+| Jetpack Compose | `StateFlow` | `val state by flow.collectAsStateWithLifecycle()` |
+
+> 一句话：**ViewModel 永远暴露 `StateFlow`，View 层按技术栈二选一**——XML 用 `repeatOnLifecycle`，Compose 用 `collectAsStateWithLifecycle`。两者都保证「不可见时不收集」，这就是 Flow 相对 LiveData 缺失、需要手动补上的「生命周期感知」。
 
 ## SharedFlow（一次性事件）
 
