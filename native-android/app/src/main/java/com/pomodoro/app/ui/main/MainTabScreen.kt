@@ -70,7 +70,7 @@ fun MainTabScreen(
                 modifier = Modifier.padding(padding)
             )
             1 -> PlaceholderContent("统计页", modifier = Modifier.padding(padding))
-            2 -> PlaceholderContent("设置页", modifier = Modifier.padding(padding))
+            2 -> SettingsScreen(modifier = Modifier.padding(padding))
             3 -> PlaceholderContent("关于页", modifier = Modifier.padding(padding))
         }
     }

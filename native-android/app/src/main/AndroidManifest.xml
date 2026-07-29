@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- ===== Flutter 调原生：设备能力权限（NAS 客户端场景） ===== -->
+
+    <!-- WiFi 状态读取 / 修改 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- 位置：WiFi 扫描结果/SSID、经典蓝牙扫描(Android 11-) 需要 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- 蓝牙：legacy 权限（Android 11 及以下，安装即授予） -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+    <!-- 蓝牙：Android 12+ 运行时权限 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- WiFi 扫描免位置（Android 13+，与 ACCESS_FINE_LOCATION 二选一即可） -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
+
+    <!-- 硬件特性声明（required=false：无该硬件的设备仍可安装） -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+
     <application
         android:name=".PomodoroApplication"
         android:label="番茄钟"

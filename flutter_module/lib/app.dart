@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'timer/timer_widget.dart';
 import 'navigations/home/home_page.dart';
+import 'navigations/device/device_demo_page.dart';
 
 /// ═══════════════════════════════════════════════════════════
 /// Flutter 模块根组件 — MaterialApp + 首页
@@ -51,6 +52,7 @@ class PomodoroApp extends StatelessWidget {
       // routes = 命名路由映射，对标 Compose 的 NavHost composable() 注册
       routes: {
         '/nav_home': (context) => const HomePage(),
+        '/device_demo': (context) => const DeviceDemoPage(),
       },
 
       // ===== 主题设置 =====
@@ -98,15 +100,31 @@ class PomodoroApp extends StatelessWidget {
         bottomNavigationBar: Builder(
           builder: (innerContext) => Padding(
             padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(innerContext, '/nav_home');
-                },
-                icon: const Icon(Icons.explore),
-                label: const Text('查看 4 级导航演示'),
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(innerContext, '/device_demo');
+                    },
+                    icon: const Icon(Icons.devices),
+                    label: const Text('设备能力 Demo（权限/WiFi/蓝牙）'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(innerContext, '/nav_home');
+                    },
+                    icon: const Icon(Icons.explore),
+                    label: const Text('查看 4 级导航演示'),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

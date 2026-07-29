@@ -3,6 +3,7 @@ package com.pomodoro.app
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import io.flutter.embedding.android.FlutterFragment
+import io.flutter.embedding.engine.FlutterEngineCache
 
 /**
  * Flutter 容器 Activity — 原生壳嵌入 Flutter 模块的核心
@@ -71,6 +72,19 @@ class FlutterContainerActivity : AppCompatActivity() {
                 .commit()
         }
         // 如果不是首次创建（如屏幕旋转），FlutterFragment 自动恢复，不需要重新添加
+
+        // ===== 注册「设备能力」MethodChannel（需要 Activity 做权限框/SAF/蓝牙确认） =====
+        // 历史数据通道(com.pomodoro/history)挂在 Application；设备能力通道需要 Activity，
+        // 所以在这里取缓存的引擎，把 this(Activity) 传给 handler，注册 ActivityResultLauncher。
+        FlutterEngineCache.getInstance().get(PomodoroApplication.ENGINE_ID)?.let { engine ->
+            DeviceChannelHandler.register(engine, this)
+        }
+    }
+
+    override fun onDestroy() {
+        // 注销 device 通道，释放 Activity 引用，避免内存泄漏
+        DeviceChannelHandler.unregister()
+        super.onDestroy()
     }
 
     // ===== 返回键处理 =====
