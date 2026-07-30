@@ -71,11 +71,11 @@ SharedPreferences 卡 UI 线程  → DataStore 异步 + Flow
 
 ## ★★★ 常用
 - [Hilt](#hilt)（Dagger 简化版）
+- [Compose](#compose)（**Android 17 起 View 已弃用，Compose 是唯一官方方向**）
 - CameraX（待补充）
 - Benchmark（待补充）
 
 ## ★ 新兴
-- [Compose](#compose)（很多公司仍以 View 体系为主）
 
 ## 进阶 / 附录
 - [Repository](#repository)
@@ -2496,14 +2496,26 @@ class MainActivity : ComponentActivity() {
 > [⬆ 返回目录](#catalog)
 
 
-> JD 中「Jetpack Compose」为 100% 必选项，且本项目（jetpack-android）全部用 Compose 编写（11 个屏幕）。本章按「为什么 → 核心 API → 原理 → 实战 → 你项目对照」展开，目标是让你**既能在面试讲清原理，又能直接看懂自己项目里每个 Compose 屏幕的每一行**。
+> JD 中「Jetpack Compose」为 100% 必选项，且本项目（jetpack-android）全部用 Compose 编写（11 个屏幕）。
+
+### 行业重大转向：Android 17 已官方弃用 View 体系
+
+**2025 年 Google I/O 宣布：Android 17 起 View 体系进入「仅维护、不再发展」状态，官方明确推荐所有新项目使用 Compose。** 这不是"趋势预测"，而是**已经发生的转向**。对标 iOS：SwiftUI 同样在逐步替代 UIKit。
+
+这意味着什么：
+- **面试不再是「会不会 Compose」的问题，而是「不会 Compose = 不合格」**
+- 已有 View 项目不一定要立刻重写，但新功能**必须**用 Compose
+- Compose 和 View 可互操作（`AndroidView` / `ComposeView`），迁移可以渐进
+- 对你会 Flutter 的履历是直接加分：Compose 和 Flutter 的声明式模型几乎一模一样
+
+本章按「为什么 → 核心 API → 原理 → 实战 → 你项目对照」展开，目标是让你**既能在面试讲清原理，又能直接看懂自己项目里每个 Compose 屏幕的每一行**。
 
 ## 总览：是什么 · 解决什么 · 怎么用
 
-- **是什么**：Jetpack Compose 是 Android 官方的**声明式 UI 工具包**，用 `@Composable` Kotlin 函数描述 UI，替代传统 XML 布局 + `findViewById`/`ViewBinding` + 命令式 `setText`。
+- **是什么**：Jetpack Compose 是 Android 官方的**声明式 UI 工具包**，用 `@Composable` Kotlin 函数描述 UI，替代传统 XML 布局 + `findViewById`/`ViewBinding` + 命令式 `setText`。**从 Android 17 起，这是官方唯一推荐的 UI 开发方式，View 体系已停止发展。**
 - **解决什么问题**：传统 View 的状态与 UI 不同步（要手动同步所有控件，漏一个就 bug）、UI 难复用（XML 是静态结构）、样板代码多。Compose 让「UI = f(state)」，状态变 UI 自动刷新。
 - **怎么用**：写 `@Composable` 函数描述 UI；用 `remember { mutableStateOf() }` 管本地状态；用 `Modifier` 链设样式/布局；状态放 ViewModel，UI 用 `collectAsStateWithLifecycle()` 收集；列表用 `LazyColumn`。
-- **为什么这样用**：声明式让状态与 UI 永远一致（不会漏更新）；函数即 UI 天然可复用；编译期生成跳过/重组逻辑保证性能；和 Flutter 思路相通，便于混合架构叙事。
+- **为什么这样用**：声明式让状态与 UI 永远一致（不会漏更新）；函数即 UI 天然可复用；编译期生成跳过/重组逻辑保证性能；和 Flutter 思路相通，便于混合架构叙事；**Google 已决定 View 体系的未来就是 Compose**。
 
 ## 1. 为什么需要 Compose（传统 View 的痛点）
 
@@ -2849,7 +2861,98 @@ OutlinedButton(onClick = { navController.navigate("home") }) { Text("进入 4 �
 
 > XML 是「建好 UI 树再手动改」，Compose 是「描述当前状态对应的 UI，框架负责刷新」。
 
-**面试高频（8年 Java 视角）：** 公司从 XML 切 Compose 的动因——开发效率、状态一致性、动态化、以及和 Flutter 思路相通（你接下来要接的 Flutter 模块），便于混合架构叙事。
+## Compose 与 View 互操作（迁移关键）
+
+Android 17 之后，你不会从零写 View 代码，但现有项目里有大量 View 和 Custom View。Compose 提供双向桥接：
+
+### View 里嵌入 Compose：ComposeView
+
+```kotlin
+// 在传统 XML 布局中嵌入 Compose UI
+// legacy_layout.xml:
+//   <androidx.compose.ui.platform.ComposeView
+//       android:id="@+id/compose_view"
+//       android:layout_width="match_parent"
+//       android:layout_height="wrap_content" />
+
+// Fragment/Activity 中：
+binding.composeView.setContent {
+    MaterialTheme {
+        MyComposeScreen()   // 直接在 XML 页面里放 Compose 内容
+    }
+}
+```
+
+### Compose 里嵌入 View：AndroidView
+
+```kotlin
+// 在 Compose 页面里嵌入传统 View（如 MapView/WebView/TextureView）
+@Composable
+fun MyMapScreen() {
+    // 传统 MapView 还没 Compose 版？用 AndroidView 临时包裹
+    AndroidView(
+        factory = { context ->
+            MapView(context).apply {
+                // 初始化 View（对标 View.onFinishInflate）
+            }
+        },
+        update = { mapView ->
+            // 状态变化时更新 View（对标手动 setText/setEnabled）
+            mapView.setLocation(lat, lng)
+        },
+        modifier = Modifier.fillMaxSize()
+    )
+}
+```
+
+**选型原则**：
+- 新页面/新功能 -> 纯 Compose
+- 老页面改 UI 小改动 -> `ComposeView` 逐步替换老 XML 片段
+- 没有 Compose 版的三方库（MapView/WebView）-> `AndroidView` 包一层
+- 复杂自绘控件已有成熟的 Custom View -> `AndroidView` 先顶上，后续重写为 Compose Canvas
+
+## 从 View 到 Compose 的迁移策略
+
+假设你现在要入职一家"老项目是 View 体系"的公司，面试官问「你打算怎么推 Compose？」，标准回答：
+
+> **"不推全量重写。我主张逐步替换——新功能用 Compose，老页面改 UI 时用 ComposeView 嵌入新模块，复杂 Custom View 用 AndroidView 包一层继续用。**
+> **关键是说服团队：Compose + View 可以共存很久，不是二选一。我们先用 Compose 写一个新列表页证明开发效率（少写 50% 代码），大家看到好处自然会跟。"**
+
+**实际落地节奏**：
+1. **先上 Compose 的 Activity/Fragment 容器**（加依赖、配置主题）
+2. **新功能用 Compose**（列表页、设置页、表单页——这些 Compose 优势最大）
+3. **老页面局部改**：用 `ComposeView` 替换单个 XML 块（如把老 RecyclerView 那段换成 Compose LazyColumn）
+4. **Custom View 不动**：复杂自绘 View 用 `AndroidView` 包，以后有空再重写
+5. **最终目标**：整个页面都是 Compose，老的 XML/View 只作为遗留 Custom View 桥接对象
+
+## 面试高频（扩展）
+
+以下是在原 15 道坑题之外，围绕「Compose 是未来」的额外追问：
+
+> **Q: Android 17 View 被弃用了，你怎么看？**
+>
+> A: 这是必然的。声明式 UI 是行业共识——Flutter、SwiftUI、Compose 都是这个方向。View 体系的根本问题是"命令式 UI 无法从根本上保证状态一致性"，一个控件忘了同步就出 bug。Compose 的 `UI = f(state)` 从模型层面消灭了这个 bug 类别。对我们开发者来说，不会 Compose 等于自断后路——以后新项目全是 Compose，面试也是必考。
+
+> **Q: Compose 和 Flutter 的关系？你的项目怎么体现？**
+>
+> A: 它们思路几乎一样——声明式 UI + 不可变状态 + 智能 diff + 局部渲染。我的项目里 `native-android` 用 Compose 做原生壳，`flutter_module` 用 Flutter 做跨端模块，两个都用了 `copyWith` 模式 + 状态管理（Riverpod 对标 ViewModel + StateFlow）。我在面试时可以直接说「Compose 和 Flutter 我都熟，混合架构我能从原生到跨端完整打通」。
+
+> **Q: 老团队抵制 Compose，你怎么说服？**
+>
+> A: 不讲大道理，拿数据说话：
+> 1. 写同一个表单页，Compose 代码量是 XML+View 的 40-50%
+> 2. 没有 `findViewById` 和 `ViewBinding`，类型安全 100% 编译期检查
+> 3. 预览（`@Preview`）比 XML 预览更快，不用跑 App 就能看到效果
+> 4. 可以和 View 共存，迁移无风险——先在一个小页面试点，结果好再推广
+
+> **Q: Compose 有什么缺点？**
+>
+> A: 老实说有：
+> 1. **编译时间**：Kotlin 编译器 + Compose 编译器插件，比纯 View 项目慢
+> 2. **调试**：重组机制让 stacktrace 更长，定位问题绕
+> 3. **成熟度**：三方库的 Compose 版覆盖率不如 View 版（但正在快速补齐）
+> 4. **团队学习曲线**：命令式->声明式思维转变需要 1-2 周适应
+> 但这些缺点相对于「状态一致性 + 开发效率」的优势是值得的——Google 自己已经用脚投票了（弃 View 推 Compose）。
 
 ---
 
