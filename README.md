@@ -14,8 +14,8 @@
 |------|------|--------|------------------|
 | ① 传统 Java（基线） | `legacy-android/` | Java + XML + Fragment + SQLite | 番茄钟 + 统计/历史 + 4 级导航演示 + 设置/关于。**最贴近原型，无文件/传输/网络** |
 | ② Jetpack MVVM（最完整） | `jetpack-android/` | Kotlin + Compose + Room + Hilt + 网络层 | 番茄钟 + **文件 + 传输 + 设置(DataStore)** + 4 级导航演示。**独有文件/传输模块与网络层** |
-| ③ Flutter（跨端模块） | `flutter_module/` | Dart + Riverpod + sqflite | 番茄钟 + 历史 + 4 级导航演示 + MethodChannel。**无文件/传输** |
-| ④ 原生壳（Flutter 子项目接入） | `native-android/` | Kotlin + Compose + Hilt + `project(":flutter")` | 经 Add-to-App 把 Flutter 作为 Gradle 子项目接入的原生 App，含 MethodChannel 通信 |
+| ③ Flutter（跨端模块） | `flutter_module/` | Dart + Riverpod + sqflite | 番茄钟 + 历史 + 4 级导航演示 + **设备能力 Demo**（权限/WiFi/蓝牙 MethodChannel）。**无文件/传输** |
+| ④ 原生壳（Flutter 子项目接入） | `native-android/` | Kotlin + Compose + Hilt + `project(":flutter")` | 经 Add-to-App 把 Flutter 作为 Gradle 子项目接入的原生 App，含 **2 个 MethodChannel**（历史 + 设备能力）+ 原生设置页 |
 
 **各工程的详细、准确地图请直接看对应目录的 README：**
 - [`legacy-android/README.md`](legacy-android/README.md)
@@ -101,7 +101,7 @@
 - `Timer.periodic` = `launch { delay() }`
 
 ### 第 4 步：读 native-android，理解混合架构
-打开 [`native-android/README.md`](native-android/README.md)。看原生壳如何用 `FlutterContainerActivity` + `MethodChannelHandler` 承载 Flutter 模块。
+打开 [`native-android/README.md`](native-android/README.md)。看原生壳如何用 `FlutterContainerActivity` + `MethodChannelHandler`（历史）+ `DeviceChannelHandler`（设备能力）承载 Flutter 模块，以及 `DeviceCapabilities` 共享层如何让原生 Compose 设置页和 Flutter ModuleChannel 共用同一份设备能力实现。
 
 ---
 
@@ -119,7 +119,8 @@
 
 ### 对标绿联云 / 目标公司
 > "目标公司用原生 + Flutter 混合架构，Flutter 模块通过 MethodChannel 调原生能力。
-> 我的 `native-android` 就是原生壳，负责导航、文件、传输；`flutter_module` 是被嵌入的跨端模块。
+> 我的 `native-android` 就是原生壳，负责导航、设备能力（权限/WiFi/蓝牙）、设置；`flutter_module` 是被嵌入的跨端模块。
+> 其中 `DeviceCapabilities` 共享层让原生 Compose 设置页和 Flutter MethodChannel 共用同一份逻辑，避免重复实现。
 > 同时我还写了纯 Compose 的 `jetpack-android` 理解原生 MVVM，写了 `legacy-android` 理解架构演进，
 > 确保对每一层都有深度理解。"
 
@@ -139,7 +140,7 @@
 
 ### ③ Flutter 版
 ```bash
-# 方式 1（作为模块）: 先把 flutter_module 编译为 aar/jar，由 native-android 依赖；在 native-android 里 Run App 后 cd flutter_module && flutter attach
+# 方式 1（作为模块）: 在 native-android 里 Run App（settings.gradle 已通过 include_flutter.groovy 挂上 :flutter 子项目）后 cd flutter_module && flutter attach
 # 方式 2（独立跑）:    cd flutter_module && flutter run
 ```
 
