@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FiiCarAIVision · 项目地图 & 面试 Q&A（拟人化版）</title>
+<style>
+:root {
+  --bg: #f7f8fb;
+  --panel: #ffffff;
+  --border: #e6e8ef;
+  --text: #1f2330;
+  --text-2: #5a6072;
+  --primary: #2f5bea;
+  --primary-2: #6b8cff;
+  --accent: #9b59ff;
+  --warn: #e67e22;
+  --ok: #16a085;
+  --danger: #e74c3c;
+  --code-bg: #1e2230;
+  --code-text: #e8ebf5;
+  --kbd-bg: #eef0f6;
+  --shadow: 0 1px 2px rgba(20,30,60,.04), 0 4px 16px rgba(20,30,60,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",PingFang SC,"Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+  font-size:14px;line-height:1.65;}
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(135deg,#1e2746 0%, #2f5bea 60%, #6b8cff 100%);
+  color:#fff;padding:18px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  box-shadow:0 2px 12px rgba(31,42,90,.18);
+}
+.topbar h1{margin:0;font-size:20px;letter-spacing:.5px}
+.topbar .meta{font-size:12px;opacity:.85}
+.topbar .meta b{opacity:1;font-weight:600}
+.layout{display:grid;grid-template-columns:260px 1fr;gap:24px;padding:24px;max-width:1400px;margin:0 auto;}
+nav.side{position:sticky;top:96px;align-self:start;background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:8px;max-height:calc(100vh - 130px);overflow:auto;
+  box-shadow:var(--shadow)}
+nav.side a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:13px;line-height:1.4}
+nav.side a:hover{background:#f0f3fb;color:var(--primary)}
+nav.side .group{font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:1px;padding:12px 10px 6px;font-weight:700}
+nav.side a.part{background:#eef2ff;color:var(--primary);font-weight:700;margin-top:6px;border-radius:8px}
+main{min-width:0}
+section.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 26px;margin-bottom:20px;box-shadow:var(--shadow)}
+h2.sec{font-size:20px;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+h2.sec .badge{font-size:11px;color:#fff;background:var(--primary);padding:2px 8px;border-radius:999px;font-weight:600}
+h3{margin:22px 0 10px;font-size:16px;color:#1f2a44}
+h4{margin:14px 0 6px;font-size:14px;color:#3b4b6e}
+p{margin:6px 0;color:var(--text)}
+ul,ol{margin:6px 0;padding-left:22px}
+li{margin:3px 0}
+code{background:var(--kbd-bg);padding:1px 6px;border-radius:5px;font-family:SF Mono,Menlo,Consolas,monospace;font-size:12.5px;color:#33406b}
+pre{background:var(--code-bg);color:var(--code-text);padding:14px 16px;border-radius:10px;overflow:auto;font-size:12.5px;line-height:1.55;
+  border:1px solid #2a3142}
+pre code{background:transparent;color:inherit;padding:0;font-size:inherit}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px}
+table th,table td{border:1px solid var(--border);padding:6px 10px;text-align:left;vertical-align:top}
+table th{background:#f5f7fc;color:#3b4b6e;font-weight:600}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;color:#fff;font-weight:600;margin-right:4px}
+.tag.ok{background:#16a085}.tag.warn{background:#e67e22}.tag.danger{background:#e74c3c}.tag.info{background:#2f5bea}.tag.purple{background:#9b59ff}
+.callout{padding:12px 14px;border-left:4px solid var(--primary);background:#eef2ff;border-radius:6px;margin:10px 0;font-size:13px}
+.callout.warn{border-color:var(--warn);background:#fff7ec}
+.callout.ok{border-color:var(--ok);background:#e7f6f2}
+.callout.danger{border-color:var(--danger);background:#fdecea}
+/* 面试官提问节奏条 */
+.prog{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px;padding:10px 12px;background:#f4f6fc;border:1px dashed #c8d2ef;border-radius:10px;font-size:12.5px;color:#46547a}
+.prog b{color:var(--primary)}
+/* 语气标签 */
+.tone{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 8px;margin-right:6px;vertical-align:1px}
+.tone.o{background:#eef2ff;color:#2f5bea}   /* 开场 */
+.tone.p{background:#e7f6f2;color:#16a085}   /* 追问 */
+.tone.d{background:#fff3e6;color:#e67e22}   /* 深挖 */
+.tone.s{background:#f3e8ff;color:#9b59ff}   /* 升华 */
+.qa{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin:12px 0}
+.qa .q{font-weight:700;color:var(--primary);font-size:14px;margin-bottom:6px}
+.qa .q::before{content:"Q";display:inline-block;width:22px;height:22px;background:var(--primary);color:#fff;border-radius:6px;
+  margin-right:8px;text-align:center;line-height:22px;font-size:12px}
+.qa .a::before{content:"A";display:inline-block;width:22px;height:22px;background:var(--ok);color:#fff;border-radius:6px;
+  margin-right:8px;text-align:center;line-height:22px;font-size:12px}
+.qa .a{margin-top:6px;font-size:13px}
+.qa .point{background:#fff7ec;border-left:3px solid var(--warn);padding:6px 10px;border-radius:4px;margin:6px 0;font-size:12.5px;color:#7a4a0d}
+details.sub{background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin:8px 0}
+details.sub>summary{cursor:pointer;font-weight:600;color:#3b4b6e;font-size:13.5px;list-style:none}
+details.sub[open]>summary{color:var(--primary)}
+.kvtable td:first-child{width:160px;color:var(--text-2);font-weight:600}
+.footer{text-align:center;color:var(--text-2);font-size:12px;padding:20px 0 30px}
+@media (max-width:900px){.layout{grid-template-columns:1fr;padding:14px}nav.side{position:relative;top:0;max-height:none}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🤖 FiiCarAIVision · 项目地图 & 面试 Q&A（拟人化·循序渐进版）</h1>
+  <div class="meta">
+    <b>SE1000 车机</b> · Android 11~15 · Kotlin 2.0.21 / Java 11 · 阿里云 NUI · 讯飞 AIKit · 多 LLM 流式 · 系统签名
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="side">
+    <div class="group">Part A · 项目地图</div>
+    <a href="#a1">A1 项目概览与定位</a>
+    <a href="#a2">A2 技术栈与依赖</a>
+    <a href="#a3">A3 整体架构</a>
+    <a href="#a4">A4 业务流程（端到端）</a>
+    <a href="#a5">A5 模块清单</a>
+    <a href="#a6">A6 关键设计点</a>
+    <a href="#a7">A7 亮点 / 难点 / 坑</a>
+
+    <div class="group">Part B · 面试 Q&A（拟人化）</div>
+    <a href="#b1">B1 开场：项目介绍</a>
+    <a href="#b2">B2 架构与设计模式</a>
+    <a href="#b3">B3 语音唤醒 KWS</a>
+    <a href="#b4">B4 ASR 语音识别</a>
+    <a href="#b5">B5 TTS 语音合成</a>
+    <a href="#b6">B6 LLM 集成与流式</a>
+    <a href="#b7">B7 车控</a>
+    <a href="#b8">B8 可见即可说 / 无障碍</a>
+    <a href="#b9">B9 导航与多 App 联动</a>
+    <a href="#b10">B10 系统集成与稳定性</a>
+    <a href="#b11">B11 并发与线程模型</a>
+    <a href="#b12">B12 性能与可靠性</a>
+    <a href="#b13">B13 调试与可观测性</a>
+    <a href="#b14">B14 开放性问题</a>
+  </nav>
+
+  <main>
+
+    <!-- ==================== Part A ==================== -->
+    <section class="card" id="a1">
+      <h2 class="sec">A1 <span class="badge">项目概览</span></h2>
+      <table class="kvtable">
+        <tr><td>项目名</td><td><code>FiiCarAIVision</code>（com.fii.caraivision）</td></tr>
+        <tr><td>公司</td><td>富士康 / 工业富联 Fii · 车机业务线</td></tr>
+        <tr><td>目标平台</td><td>SE1000 车机 SOC（ARM64-v8a · Android 11~15）</td></tr>
+        <tr><td>版本</td><td>versionName 1.1.10 / versionCode 1110（迭代中）</td></tr>
+        <tr><td>类型</td><td>POC（Proof of Concept）—— 预装系统级应用</td></tr>
+        <tr><td>签名</td><td>系统签名（<code>platform</code> keyalias，sharedUserId=android.uid.system）</td></tr>
+        <tr><td>一句话定位</td><td>基于 4 状态有限状态机、配置驱动、双 ASR 引擎、多通道 TTS、可热切换大模型的车机 AI 语音助手，覆盖"唤醒–识别–理解–决策–执行"全链路</td></tr>
+      </table>
+      <div class="callout"><b>UI 形态（来自项目截图）</b>：在 3D Launcher（太空雪地背景 + 3D 车模）之上悬浮聊天气泡（千问/豆包/芯擎三模型切换、AI 回答 Markdown 渲染、天气卡片、空调控件）。</div>
+    </section>
+
+    <section class="card" id="a2">
+      <h2 class="sec">A2 <span class="badge">技术栈</span></h2>
+      <h3>语言 / 构建</h3>
+      <ul>
+        <li><b>Kotlin 2.0.21</b> + Java 11（混合代码 · Kotlin 仅占 MainActivity.kt 与 AliyunTokenHelper.kt）</li>
+        <li><b>AGP 8.5.0</b> · Gradle Kotlin DSL · Version Catalog（libs.versions.toml）</li>
+        <li>compileSdk 35 / minSdk 29 / targetSdk 35 / ABI arm64-v8a</li>
+        <li>允许 <code>usesCleartextTraffic</code> + 自签系统签名</li>
+      </ul>
+      <h3>核心依赖</h3>
+      <table>
+        <tr><th>类别</th><th>库</th><th>用途</th></tr>
+        <tr><td>语音（阿里云）</td><td><code>nuisdk-release.aar</code> 23.8 MB</td><td>本地 KWS 唤醒、在线 ASR、在线流式 TTS、离线 TTS（精品版）</td></tr>
+        <tr><td>语音（讯飞）</td><td><code>AIKit.aar</code> 11.8 MB</td><td>离线 ASR（<code>ee62fa27c</code> 中英听写能力）</td></tr>
+        <tr><td>车控</td><td><code>CarControlSDK.aar</code> 63 KB</td><td>玻璃、空调、后视镜、车门、灯光；3D 元素回调</td></tr>
+        <tr><td>多 LLM</td><td><code>llmclient-debug-1224.aar</code> 508 KB</td><td>封装千问 / 豆包 / 芯擎三种流式服务</td></tr>
+        <tr><td>网络</td><td>OkHttp 4.11.0</td><td>HttpURL + 阿里云 Token 签名</td></tr>
+        <tr><td>通信</td><td>EventBus 3.3.1</td><td>服务 ↔ 悬浮窗 ↔ Activity 消息总线</td></tr>
+        <tr><td>KV 存储</td><td>MMKV 1.3.0</td><td>图片 base64 缓存、模型偏好</td></tr>
+        <tr><td>视觉</td><td>Glide 4.16 + android-gif-drawable</td><td>头像、动效、GIF 状态机</td></tr>
+        <tr><td>地图</td><td>com.amap.api:location</td><td>定位 + 高德 URI Scheme</td></tr>
+        <tr><td>工具</td><td>Utilcodex 1.31.1</td><td>Toast、Activity 栈、转换等</td></tr>
+        <tr><td>JSON</td><td>fastjson 1.1.46 + org.json</td><td>车控配置 / NUI 协议解析</td></tr>
+      </table>
+      <h3>工程结构</h3>
+      <pre><code>app/src/main/
+├── AndroidManifest.xml          # 系统签名 + 前台服务 + 无障碍
+├── assets/
+│   ├── car_commands.json        # 🚗 车控配置（设备×操作×正则）
+│   ├── app_commands.json        # 📱 App 启动配置
+│   ├── WakeUp.bin               # 唤醒模型（本地 KWS）
+│   └── iflytek/                 # 讯飞离线资源
+├── java/com/fii/caraivision/
+│   ├── FiiCarApp / MainActivity / AssistantStatus
+│   ├── auth/  ──── 阿里云 Token（HMAC-SHA1 签名）
+│   ├── bean/  ──── 数据模型
+│   ├── chat/  ──── ChatActivity 文字对话
+│   ├── listener/ IASRUtil 接口
+│   ├── navi/   ──── POI 列表
+│   ├── receiver/ BootCompletedReceiver
+│   ├── service/
+│   │   ├── VoiceAssistantService     ★ 心脏（2856 行）
+│   │   ├── FloatingChatService       悬浮气泡
+│   │   └── MyAccessibilityService   2D 可见即可说
+│   ├── utils/  ─���── 30+ 工具类（车控、ASR、TTS、LLM、导航...）
+│   └── voiceclick/AccessibilityUtils
+└── res/layout/  activity_chat / floating_chat / show_ai_bot / show_camera ...</code></pre>
+    </section>
+
+    <section class="card" id="a3">
+      <h2 class="sec">A3 <span class="badge">整体架构</span></h2>
+      <h3>分层</h3>
+      <pre><code>┌─────────────────────────── 用户层 ────────────────────────────┐
+│  MainActivity（权限/绑定/启动）  ChatActivity（文字对话）    │
+│  3D Launcher（宿主）  QQ音乐车机版 / 高德 / 百度（被调起）  │
+└─────────────────────────── 服务层 ────────────────────────────┘
+        ▲                ▲                ▲                ▲
+┌─────────────────────────── 核心服务 ───────────────────────────┐
+│  VoiceAssistantService（前台 + 前台麦克风）                     │
+│  ├─ 状态机 AssistantStatus × 编排主流程                         │
+│  ├─ wakeup / ASR / TTS / LLM 桥接                              │
+│  ├─ 离线语音包预下载  + 摄像头 TextureView 悬浮窗              │
+│  └─ EventBus ↔ FloatingChatService ↔ ChatActivity              │
+└─────────────────────────── 能力层（可插拔）───────────────────┘
+        │
+┌─────────────────────────── 三方 SDK ───────────────────────────┐
+│  NUI（nuisdk）       CarControlSDK       llmclient           │
+│  讯飞 AIKit          高德定位           OkHttp              │
+└─────────────────────────── 系统能力 ────────────────────────────┘
+        │
+┌─────────────────────────── 平台（系统签名）───────────────────┐
+│  sharedUserId=system · CONFIG_APPLICATION_OVERLAY · 开机广播 │
+│  AccessibilityService · 前台服务 microphone/phoneCall          │
+└───────────────────────────────────────────────────────────────┘</code></pre>
+
+      <h3>状态机（核心）</h3>
+      <pre><code>           ┌──────────────┐  唤醒词"小云小云"
+           │ WAIT_WAKEUP  │ ◄──────────────────────┐
+           └──────┬───────┘                        │
+                  │ stopWakeup + 初始化 ASR          │
+                  ▼                                │
+           ┌──────────────┐                        │
+           │WAKEUP_SUCCESS│ ── "你好，请说" ──┐    │
+           └──────┬───────┘                   │    │
+                  │ ASR 最终结果（最终）        │    │
+                  ▼                            │    │
+           ┌──────────────┐  TTS 播报完成       │    │
+           │ WAIT_REGON   │ ─────────────►─┐    │    │
+           └──────┬───────┘                 │    │    │
+                  │ 继续会话/超时            │    │    │
+                  ▼                        ▼    │    │
+           ┌─────────────────────┐  回到 WAIT_WAKEUP
+           │ REGOIN_SUCCESS_AND_RETRY │ ─────┘
+           └─────────────────────────┘</code></pre>
+      <div class="callout"><b>状态变更是显式的、可追踪的（每个分支都有 <code>Log.w("----------第N个进入等待唤醒监听方法入口-------")</code> 这种带序号的标记），方便排查"为什么没进入待唤醒"。</b></div>
+    </section>
+
+    <section class="card" id="a4">
+      <h2 class="sec">A4 <span class="badge">业务流程</span></h2>
+      <ol>
+        <li>用户点击桌面图标 → <code>MainActivity</code>（Theme.Translucent，单实例）→ 申请 8 项运行时权限 → 通过 ServiceConnection 绑定 <code>VoiceAssistantService</code>。</li>
+        <li>Service.onCreate：① 预下载离线语音包（阿里云 aar 自带 aijia + 额外下载 xiaoqi）② EventBus 注册 ③ 创建摄像头 1×1 悬浮窗 + AI 助手 gif 悬浮窗 ④ 注册 <code>ConnectivityManager.NetworkCallback</code> ⑤ 拉取阿里云 Token（启动时无网络则 fallback）</li>
+        <li>Service.onStartCommand → 启动前台（microphone）→ 鉴权 + 初始化 TTS（先 TTS 后 ASR）→ 初始化本地唤醒 → 进入 <code>WAIT_WAKEUP</code>。</li>
+        <li>用户说 <b>"小云小云"</b> → NUI <code>EVENT_WUW_TRUSTED</code> → <code>stopWakeup</code> → 切 <code>WAKEUP_SUCCESS</code> → 弹气泡 + 播"你好，请说" → 初始化 ASR → 启动 ASR 监听 → <code>WAIT_REGON</code>。</li>
+        <li>ASR 回调：<code>onPartialResult</code>（中间结果）实时显示；<code>onFinalResult</code>（最终结果）走 <b>命令优先级链</b>。</li>
+        <li>命令优先级链（详见 <code>VoiceAssistantService.handleVoiceCommand</code>）：
+          <pre><code>① 退出语音助手（"退出助手"等）→ 回到 WAIT_WAKEUP
+② 导航选择（导航列表可见时）→ 提取数字选第 N 个 POI
+③ 车控（正则 / 中文数字）→ 本地执行 / CarControlSDK
+④ App 控制（assets/app_commands.json）→ 启动第三方 App
+⑤ 可见即可说（SystemNavigationManager + MyAccessibilityService + 3D）→ 无障碍 API
+⑥ 音乐控制（KEYCODE_MEDIA_NEXT...）→ dispatchMediaKeyEvent
+⑦ AI 问答 → LLM 流式 → 流式 TTS → 浮窗实时刷新</code></pre>
+        </li>
+        <li>流式 TTS onChunk → <code>streamUtil.speak(chunk)</code> → 阿里云 SDK 推流 → AudioPlayer 实时播放 → 浮窗 EVENT_UPDATE_ANSWER_CONTENT 滚动显示。</li>
+        <li>onPlayFinished → <code>startASRListening()</code> → 多轮对话。</li>
+        <li>退出 / 打断路径：<code>EVENT_SWITCH_MODEL</code> / 退出命令 / 流式 cancel → <code>isCancelTask</code> / Thread.interrupt / <code>streamClient.cancelCurrentRequest</code>。</li>
+      </ol>
+    </section>
+
+    <section class="card" id="a5">
+      <h2 class="sec">A5 <span class="badge">模块清单</span></h2>
+      <table>
+        <tr><th>模块</th><th>核心类 / 文件</th><th>职责</th></tr>
+        <tr><td>应用启动</td><td><code>FiiCarApp</code> / <code>MainActivity.kt</code></td><td>初始化 ConfigManager & AuthSharedPreferences；权限引导 & 绑定服务</td></tr>
+        <tr><td>核心编排</td><td><code>VoiceAssistantService</code> (2856 行 ★)</td><td>状态机、命令优先级链、广播/EventBus 调度、网络自恢复</td></tr>
+        <tr><td>语音唤醒</td><td><code>VoiceWakeupUtil</code> (973 行)</td><td>NUI <code>NativeNui.startDialog(TYPE_ONLY_KWS)</code>，assets WakeUp.bin；AEC + VOICE_COMMUNICATION</td></tr>
+        <tr><td>ASR 在线</td><td><code>AliyunASRUtil</code> (1116 行)</td><td>NUI 通用 ASR，wss 上海/深圳网关，16kHz/opus</td></tr>
+        <tr><td>ASR 离线</td><td><code>XunfeiOfflineASRUtil</code> (1192 行)</td><td>讯飞 AIKit 离线引擎，个性化资源 PPROC_NOT_REP/REPLACE/PERSONAL</td></tr>
+        <tr><td>TTS 在线流式</td><td><code>AliyunStreamUtil</code> (489 行)</td><td>MODE_STREAM_INPUT_TTS，zhixiaoxia 声线，逐句推送</td></tr>
+        <tr><td>TTS 离线</td><td><code>AliyunOfflineTTSUtil</code> (659 行)</td><td>MODE_TTS，aijia 默认 + 可下载 xiaoqi/aicheng 声线</td></tr>
+        <tr><td>TTS 系统</td><td><code>SystemTtsManager</code></td><td>Android 系统 TTS（兜底）</td></tr>
+        <tr><td>LLM</td><td><code>llmclient-debug.aar</code> + <code>TongyiQianwenUtil</code> (Qwen OkHttp 自实现)</td><td>QwenClientStreamService / DoubaoClientStreamService / SiengineClientStreamService</td></tr>
+        <tr><td>车控</td><td><code>CarControlUtil</code> (1575 行)</td><td>car_commands.json 配置驱动 + 复合指令 + 中文数字 + 边界检查</td></tr>
+        <tr><td>导航</td><td><code>AMapNaviUtils</code> + <code>NavigationData</code></td><td>amapuri / androidamap / baidumap URI Scheme</td></tr>
+        <tr><td>可见即可说 2D</td><td><code>MyAccessibilityService</code> + <code>SystemNavigationManager</code></td><td>节点抓取 + 中文数字 + 坐标手势点击 + 系统返回/Home</td></tr>
+        <tr><td>可见即可说 3D</td><td><code>CarControlSDK.onCallBackVoiceAssistant</code></td><td>3D 元素列表回传 + 文本模糊匹配</td></tr>
+        <tr><td>App 控制</td><td><code>ApkControlUtil</code> + <code>app_commands.json</code></td><td>打开/搜索第三方 App</td></tr>
+        <tr><td>音乐控制</td><td><code>AudioManager.dispatchMediaKeyEvent</code></td><td>QQ 音乐车机版 + URI scheme</td></tr>
+        <tr><td>悬浮气泡</td><td><code>FloatingChatService</code> (1232 行)</td><td>WindowManager 浮窗 + Action 命令 + EventBus</td></tr>
+        <tr><td>文字对话</td><td><code>ChatActivity</code> + <code>MarkdownTextRenderer</code></td><td>底部输入 + 拍照 + 流式 Markdown 渲染</td></tr>
+        <tr><td>音频</td><td><code>AudioPlayer</code> / <code>AudioFocusManager</code></td><td>AudioTrack 流式播放 + GAIN_TRANSIENT_EXCLUSIVE 焦点</td></tr>
+        <tr><td>鉴权</td><td><code>AliyunTokenHelper.kt</code> (HMAC-SHA1) + <code>AuthHelper</code> + <code>AuthSharedPreferences</code></td><td>阿里云 SPA 签名 + 过期前 2 小时预刷新</td></tr>
+        <tr><td>配置</td><td><code>ConfigManager</code> + <code>AppConstants</code></td><td>外部 SD 卡 fii/fii_llm_secrets.json + MediaStore 兼容 Android 10+</td></tr>
+        <tr><td>视觉</td><td><code>CameraHelper</code> (aar) + <code>show_camera.xml</code></td><td>后台 1×1 TextureView，用于多模态问图</td></tr>
+        <tr><td>网络</td><td><code>ConnectivityManager.NetworkCallback</code></td><td>断网/恢复自动重置唤醒 + TTS</td></tr>
+        <tr><td>共情</td><td><code>RoadConditionEmpathyService</code> (aar)</td><td>导航拥堵时语音提示</td></tr>
+        <tr><td>开机自启</td><td><code>BootCompletedReceiver</code></td><td>ACTION_BOOT_COMPLETED → 启动 MainActivity → 拉起前台服务</td></tr>
+      </table>
+    </section>
+
+    <section class="card" id="a6">
+      <h2 class="sec">A6 <span class="badge">关键设计点</span></h2>
+      <details class="sub" open><summary>① 4 状态有限状态机，而不是狂用 if/else</summary>
+        <p>枚举 <code>AssistantStatus</code>：WAIT_WAKEUP / WAKEUP_SUCCESS / WAIT_REGON / REGOIN_SUCCESS_AND_RETRY。每个分支/回调都先检查状态，避免 ASR 重复启动、避免 TTS 期间又被 ASR 录到、避免切模型时的竞态。</p>
+      </details>
+      <details class="sub" open><summary>② 双 ASR 引擎 + 可配置</summary>
+        <p><code>ConfigManager.getASREngine()</code> 给出 <code>online</code> / <code>offline</code>。在线用阿里云 NUI；离线用讯飞 AIKit（断网或车机弱网场景）。</p>
+      </details>
+      <details class="sub" open><summary>③ 三条 TTS 通道</summary>
+        <p>在线流式（zhixiaoxia，AI 回调用）/ 离线（aijia/xiaoqi，启动时 ZIP 预下载，弱网兜底）/ 系统 TTS（兜底）。</p>
+      </details>
+      <details class="sub" open><summary>④ 三 LLM 可热切换</summary>
+        <p>千问（dashscope SDK）、豆包（volcengine ark）、芯擎/端模型（私有）。流式回调统一抽象 <code>ILlmClientStreamService</code>，onChunk 喂给流式 TTS。重问时缓存 <code>lastValidQuestion</code>，切换完直接重发。</p>
+      </details>
+      <details class="sub" open><summary>⑤ 车控配置驱动</summary>
+        <p><code>assets/car_commands.json</code> 描述设备 → 操作 → 触发正则 → 动作 → 反馈。新车型只需改 JSON，不重发包。每个操作支持 <code>triggers</code>（固定正则）+ <code>trigger_patterns</code>（带参数）。</p>
+      </details>
+      <details class="sub" open><summary>⑥ 复合指令 + 中文数字</summary>
+        <p>"打开空调和风量调到三档" → 按"和/与/并且/同时/以及/并"拆 → 动词补全（"调风量"）→ <code>convertChineseNumberToArabic</code>（"三" → 3，处理"十/百/千/万"，"二十六" → 26）。</p>
+      </details>
+      <details class="sub" open><summary>⑦ 边界检查</summary>
+        <p>温度 16-32°C、风速 0-8 档，超过范围直接语音反馈"超出范围，无法执行"；并基于当前状态计算（getACTemperature/getACWindSpeed）。</p>
+      </details>
+      <details class="sub" open><summary>⑧ 可见即可说 2D + 3D 双引擎</summary>
+        <p>2D：AccessibilityService 抓节点 + 中文数字 + 包含/相似匹配 + 标准点击 + 坐标手势点击（dispatchGesture 兜底）；3D：CarControlSDK onCallBackVoiceAssistant 把 3D 元素 JSON 推过来，模糊匹配后 setVoiceCommandToAndroid。</p>
+      </details>
+      <details class="sub" open><summary>⑨ 网络自恢复</summary>
+        <p><code>ConnectivityManager.NetworkCallback</code> 监听 onAvailable / onLost；断网时切回 WAIT_WAKEUP + 释放 ASR；恢复时重新初始化 TTS（鉴权文件丢失 140008 错误修复）+ 重启唤醒。</p>
+      </details>
+      <details class="sub" open><summary>⑩ 鉴权 SPA 签名 + 主动刷新</summary>
+        <p>阿里云 Token = HMAC-SHA1（AccessKeySecret + 规范化请求）。<code>AuthHelper.checkTokenIsValidAndUpdate</code> 在 token 剩余 &lt; 2 小时自动续期；token 持久化到 SharedPreferences。</p>
+      </details>
+      <details class="sub" open><summary>⑪ 全局录音冲突规避</summary>
+        <p>AudioRecord 音源 <code>VOICE_COMMUNICATION</code>（Q+）+ <code>AcousticEchoCanceler</code> 开启；TTS 开始时 <code>stopRecognize</code>；音乐焦点用 <code>AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE</code>。</p>
+      </details>
+      <details class="sub" open><summary>⑫ 状态机进入路径可追踪</summary>
+        <p>所有 10+ 个"进入等待唤醒监听方法入口"以及 7 个"ASR 启动入口"都用 <code>Log.w("----------第N个入口XXXX---------")</code> 唯一编号，排查"为什么没进入"类问题极快。</p>
+      </details>
+    </section>
+
+    <section class="card" id="a7">
+      <h2 class="sec">A7 <span class="badge">亮点 / 难点 / 坑</span></h2>
+      <table>
+        <tr><th>亮点</th><th>说明</th></tr>
+        <tr><td>系统级预装 + 平台签名</td><td><code>sharedUserId=android.uid.system</code> + <code>se1000.jks</code> 平台 key，<code>activity-exported=true</code>，开机自启</td></tr>
+        <tr><td>AudioRecord + AEC + VOICE_COMMUNICATION</td><td>车载 TTS ��放与 ASR 录音互相干扰的工程化解决</td></tr>
+        <tr><td>流式 TTS 同步 LLM chunk</td><td>first token 延迟体感从 2-3s 降到 0.3s</td></tr>
+        <tr><td>可热切换的 LLM 抽象</td><td><code>ILlmClientStreamService</code> + EventBus EVENT_SWITCH_MODEL 实现 1.5s 内切换模型重答</td></tr>
+        <tr><td>配置驱动车控 + 复合指令 / 中文数字</td><td>新增功能零代码改动，添加车型最快 1 小时</td></tr>
+      </table>
+      <h3>难点 / 踩坑</h3>
+      <ul>
+        <li><b>阿里云 NUI 鉴权文件</b>：首次启动无网络 → 唤醒 240088 / TTS 140008 → 监听网络恢复自动重试；离线时还要兜底讯飞 ASR。</li>
+        <li><b>流式 TTS 取消</b>：要同时发 <code>cancelStreamInputTts</code> + 强制 <code>audioPlayer.stop()</code> + 同步 <code>isSynthesizing=false</code>；onCancel 回调延迟引发 200ms 重试窗口。</li>
+        <li><b>ASR 重复启动</b>：通过 <code>isStartingSpeechRecognition</code> 标志位 + <code>synchronized</code> + 状态机检查三重防护。</li>
+        <li><b>LLM 切模型竞态</b>：EVENT_SWITCH_MODEL 移除上一个切换 runnable + 延迟 300ms 等 onCancel 完成 + 重置 <code>isCancelTask</code>。</li>
+        <li><b>悬浮窗权限</b>：Android 12+ 强制 <code>Settings.canDrawOverlays</code>，主流程引导用户开启。</li>
+        <li><b>前台服务被 kill</b>：<code>START_STICKY</code> + <code>AlarmManager + 5 秒 PendingIntent</code> 自拉；预留 <code>restartApp</code>（killProcess + Suicide）兜底。</li>
+        <li><b>车机型号差异</b>：空调温度最小 16°C、最大 32°C 写死，反馈"超出范围"；预留接口读整车。可扩展成可配置。</li>
+      </ul>
+    </section>
+
+    <!-- ==================== Part B ==================== -->
+
+    <!-- ═══════════════ B1 开场 ═══════════════ -->
+    <section class="card" id="b1">
+      <h2 class="sec">B1 <span class="badge">开场：项目介绍</span></h2>
+      <div class="prog">🎬 <b>面试官节奏</b>：先让你自由发挥介绍项目 → 追问你的真实职责 → 再试探你对"为什么做这个"想没想清楚。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>先简单聊聊你这个项目吧，60 秒介绍下它是什么？</div>
+        <div class="point">考察：逻辑层次、表达能力</div>
+        <div class="a">一句话：<b>在车机 SOC（SE1000）上做的一个预装级 AI 语音助手 POC，覆盖"唤醒–识别–理解–决策–执行"全链路。</b>
+        <br>我习惯按四层讲：① 平台层——ARM64-v8a、系统签名、开机自启；② 服务层——一个核心 <code>VoiceAssistantService</code>（2856 行）做编排，加两个辅助前台服务（悬浮气泡 + 无障碍）；③ 能力层——阿里云 NUI（唤醒/在线 ASR/流式 TTS）、讯飞 AIKit（离线 ASR）、CarControlSDK（车控）、llmclient（千问/豆包/芯擎三种 LLM）；④ 业务层——4 状态有限状态机 + 配置驱动的命令优先级链。你可以说"这个项目让我把语音链路、车机系统能力、大模型三种东西串起来了"。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>你在这个项目里具体负责哪些？哪些是你主导的？</div>
+        <div class="point">考察：贡献度、是否独立</div>
+        <div class="a">绝大多数都是我主导的：
+          <ul>
+            <li>整体架构：4 状态状态机 + 核心服务编排</li>
+            <li>语音唤醒（<code>VoiceWakeupUtil</code>）+ AudioRecord/AEC 采集层</li>
+            <li>双 ASR 引擎抽象（在线/离线切换）</li>
+            <li>多通道 TTS（在线流式、离线、系统 TTS）</li>
+            <li>多 LLM 流式集成 + 模型热切换</li>
+            <li>车控配置驱动方案 + 复合指令 + 中文数字</li>
+            <li>可见即可说（2D 无障碍 + 3D 元素）</li>
+            <li>系统集成：开机自启、前台服务、断网恢复、鉴权签名</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>为什么车机要自研方案？直接用 Android Auto / CarPlay 不行吗？</div>
+        <div class="point">考察：业务理解</div>
+        <div class="a">主要三条：① 自主可控——OEM 要深度定制（车控、3D Launcher、整车协议），通用方案根本触达不到 CAN 总线；② 系统级权限——需要 <code>sharedUserId=system</code> + 平台签名，车机预装才有；③ 本地化能力——要求<b>离线唤醒、离线 ASR、离线 TTS</b>，地库隧道没网也得能用，通用方案都依赖云端。一句话：通用方案是"导航播报员"，我们要的是"能开车门、调空调、看 3D 车模的管家"。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>这项目里你最得意的是什么？</div>
+        <div class="point">考察：自我认知、亮点聚焦</div>
+        <div class="a">三选一讲：
+        <br>① <b>4 状态状态机 + 入口序号日志</b>——被 bug 逼出来的设计，每个入口都打"第 N 个进入等待唤醒监听"这种编号日志，排查从小时级降到分钟级，这算是我最自豪的工程化细节；
+        <br>② <b>车控配置驱动</b>——新车型加功能只改 JSON 不用发包；
+        <br>③ <b>全链路流式</b>——首字延迟压到 0.3s。建议讲②或③，因为①的"日志"容易让面试官觉得在炫技，②③更体现业务价值。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>反过来，最失败、最想吐槽自己的是什么？</div>
+        <div class="point">考察：反思能力、诚实度</div>
+        <div class="a">说实话，最想吐槽的是早期"布尔变量满天飞"那版——<code>isWakeuping</code>、<code>isStartingSpeechRecognition</code>、<code>isTTSSpeaking</code> 散在 Service 里，结果一堆状态组合 bug：TTS 播着播着 ASR 又开录，把 AI 自己的声音录进去自问自答。后来才下决心重构成状态机。教训是：<b>多线程 + 异步回调的系统，第一版就该上状态机，别信"先跑起来再说"</b>。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B2 架构 ═══════════════ -->
+    <section class="card" id="b2">
+      <h2 class="sec">B2 <span class="badge">架构与设计模式</span></h2>
+      <div class="prog">🎬 先听整体主流程 → 🔍 追问分层与通信 → 🕳️ 深挖状态机/配置驱动细节 → 🚀 最后问重构意愿。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>你整个语音助手的主流程能画个图讲讲吗？</div>
+        <div class="point">考察：全局视角</div>
+        <div class="a">可以。就一条主线：<b>待唤醒 → 唤醒 → 识别 → 理解 → 执行/回答 → 再待唤醒</b>。
+        <br>① 开机自启拉起 MainActivity → 申请权限 → 绑定 Service；② Service 里先初始化鉴权（拉阿里云 Token）和 TTS，然后初始化本地唤醒，进入 <code>WAIT_WAKEUP</code>；③ 说"小云小云" → 切 <code>WAKEUP_SUCCESS</code> → 播"你好，请说" → 切 ASR 监听 <code>WAIT_REGON</code>；④ ASR 出最终结果 → 走命令优先级链（退出 > 车控 > App 控制 > 可见即可说 > 音乐 > AI 问答）；⑤ AI 问答走 LLM 流式 + 流式 TTS，播完自动回下一轮 ASR（多轮对话）。副线还有：网络断/连自愈、模型切换、离线语音包预下载。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>为什么拆了三个 Service？全堆一个里不行吗？</div>
+        <div class="point">考察：服务拆分依据</div>
+        <div class="a">三个理由：① <b>职责</b>——<code>VoiceAssistantService</code> 编排核心逻辑，<code>FloatingChatService</code> 管悬浮气泡 UI，<code>MyAccessibilityService</code> 管系统导航/节点抓取，各管一摊；② <b>前台服务类型隔离</b>——核心服务声明 <code>microphone</code>，悬浮窗声明 <code>phoneCall</code>，Android 14+ 对前台服务类型查得很严，混在一起会被系统拒绝；③ <b>故障隔离</b>——无障碍服务被系统重启不影响语音主流程。这也算模块化的一个缩影。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>你这语音助手的状态机具体怎么实现的？内部逻辑是什么？怎么确保它不出错？为什么用状态机而不是 if/else？</div>
+        <div class="point">考察：状态机必要性 + 正确性保障</div>
+        <div class="a">说实话，这个是被 bug 逼出来的。最早我拿一堆布尔变量拼：<code>isWakeuping</code>、<code>isStartingSpeechRecognition</code>、<code>isTTSSpeaking</code> 全散在 Service 里。结果就是各种"卡死"反馈——要么唤醒成功了识别却起不来，要么 TTS 还在播，ASR 又开录了，把 AI 自己说的话当用户指令录进去了，直接自问自答（笑）。后来我痛下决心，把整个助手收敛成一个 4 态的有限状态机。
+        <br><b>状态定义：</b><code>WAIT_WAKEUP</code>（只挂唤醒词，不干别的）→ <code>WAKEUP_SUCCESS</code>（刚被唤醒，准备切识别）→ <code>WAIT_REGON</code>（正在听用户说话）→ <code>REGOIN_SUCCESS_AND_RETRY</code>（这轮答完了，等下一句或超时回唤醒）。
+        <br><b>核心逻辑：</b>所有异步回调——唤醒回调、ASR 中间/最终结果、TTS 播完回调、网络回调、模型切换事件——进来第一件事就是 <code>if (assistantStatus != 期望值) return</code>，状态不对直接拒掉，从源头掐断并发竞争。
+        <br><b>怎么确保正确：</b>三招。第一，状态转移只有一条主线，单向推进，谁想改状态必须先通过前置校验；第二，全项目十几个进入状态的入口，每个我都打了唯一编号日志（"第 N 个进入等待唤醒监听方法的入口"），出 bug 拉日志一眼定位是从哪条路进来的，排查从小时级降到分钟级；第三，关键资源再加一道互斥——<code>startASRListening()</code> 是 <code>synchronized</code> 的，配合 <code>isStartingSpeechRecognition</code> 标志位防重入。
+        <br><b>为什么不用 if/else：</b>因为状态太多了——唤醒中、识别中、播报中、等待中、切模型中，互相组合，布尔变量根本理不清；而且这些回调来自不同线程，你不知道它什么时候来。状态机把"此刻能不能做这件事"收敛成一个判断，这是我踩完坑换来的教训。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>你 Service 和 Activity 之间怎么通信的？为什么要用 Binder？</div>
+        <div class="point">考察：IPC 选型</div>
+        <div class="a">用了 <code>ServiceConnection</code> + <code>LocalBinder</code>：Activity 绑定服务后拿到 <code>voiceService</code> 对象引用，同步调 <code>isServiceActive()</code>、<code>startASRListeningWithoutWakeup()</code>。为什么不用 Messenger/AIDL？因为这是<b>同进程</b>通信，Binder 直接给对象、方法调用零开销；Messenger/AIDL 是为跨进程设计的异步方案，这里用了反而多余。我判断标准很简单：同进程用 Binder，跨进程才上 AIDL。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>为什么用 EventBus？广播、单例回调不好吗？</div>
+        <div class="point">考察：通信选型</div>
+        <div class="a">EventBus 适合这种"单 App 内、跨组件、消息种类固定"的场景：① 解耦——<code>VoiceAssistantService</code> 发事件，<code>FloatingChatService</code>、<code>ChatActivity</code> 各订阅各的，互不引用；② 线程切换——<code>@Subscribe(threadMode = MAIN)</code> 直接回调主线程，省得自己 post；③ 比广播快（进程内直接分发，不走 Binder）。它有个前提：必须同进程，跨进程得换广播/Service。本项目所有通信都在进程内，EventBus 正好。单例回调的问题是要么全局一把梭、要么层层传，EventBus 把"谁关心谁订阅"表达得更清楚。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>车控为什么要搞成配置驱动（JSON）？直接硬编码不更快？</div>
+        <div class="point">考察：可扩展性意识</div>
+        <div class="a">硬编码快是快，但车机项目的痛点在于<b>车型多、口语说法多、迭代快</b>：① 同一个动作"开空调"，用户可能说"打开空调""把空调开一下""启动空调"，每种说法一条正则，全写死在代码里，改一次发一次包；② 新车型功能不同，改 JSON 就能适配，不用动代码；③ 测试和产品也能直接改配置调优，不用找我。所以我把 <code>car_commands.json</code> 做成"设备-操作-触发正则-动作-反馈"四层结构，这是典型的数据驱动设计。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>"打开空调和关闭车窗"这种复合指令，你代码里怎么拆的？</div>
+        <div class="point">考察：复合指令处理</div>
+        <div class="a">三步：① <b>分隔</b>——按"和/与/并且/同时/以及/还有/并"这几个连接词拆成子句（<code>COMPOUND_SEPARATORS</code>）；② <b>动词补全</b>——用户说"开空调和车窗"，第二个子句"车窗"缺动词，我就从第一个子句借前两个字补成"开车窗"；③ <b>逐条匹配执行</b>——每个子句独立走命令匹配，都命中了就并行执行，反馈文本用"，"拼接。还有个防误判细节：<b>只要有一条子句不是有效车控指令，整个就不返回结果</b>，避免"我和谁吃饭"这种被误拆。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>中文数字"二十六度"怎么转成 26 的？</div>
+        <div class="point">考察：算法细节</div>
+        <div class="a">两步：① <b>正则提取</b>——先匹配"最大/最高/最小/最低"这类极值词，再匹配"零一二三...十百千万 + 度/档"提取出"二十六"；② <b>中文数字转阿拉伯</b>——我写了个解析器，倒序遍历字符，数字字符累加、单位字符乘算（十=10、百=100），"二十六"就是 2×10+6=26，还要处理"十"前面没数字的情况（默认 1，就是"十"=10）。最后分别映射：空调温度范围 16-32°C、风速 0-8 档，超范围直接语音反馈"超出范围，无法执行"。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>如果给你一个月，让你重写这个项目，你会怎么改？</div>
+        <div class="point">考察：反思与视野</div>
+        <div class="a">我会做四件事：① 把 2856 行的 <code>VoiceAssistantService</code> 拆成模块——<code>WakeupEngine / ASREngine / TTSEngine / LLMEngine / CommandRouter</code>，用接口解耦；② LLM 流式改用原生 OkHttp + SSE 实现，不再依赖闭源 llmclient.aar，方便私有化部署；③ 状态机换成 Kotlin 的 StateFlow + 编译期校验，把"非法状态转移"变成编译错误而不是运行时 bug；④ 补上埋点上报（唤醒率、ASR 错误率、首字延迟 P99），让质量可度量。核心目标：<b>从"能跑"到"可观测、可测试、可替换"</b>。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B3 唤醒 ═══════════════ -->
+    <section class="card" id="b3">
+      <h2 class="sec">B3 <span class="badge">语音唤醒 KWS</span></h2>
+      <div class="prog">🎬 唤醒整体怎么做的 → 🔍 为什么本地跑、怎么和 ASR 抢话筒 → 🕳️ 失败重试的坑。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>唤醒是怎么实现的？</div>
+        <div class="point">考察：KWS 方案</div>
+        <div class="a">基于阿里云 NUI SDK 的本地唤醒：<code>NativeNui.startDialog(Constants.VadMode.TYPE_ONLY_KWS)</code>，配合 assets 里的 <code>WakeUp.bin</code> 模型（初始化时拷到本地工作目录，用 <code>upgrade_file</code> 指向它）。SDK 识别到唤醒词会触发 <code>EVENT_WUW_TRUSTED</code> 事件，我从 <code>kwsResult.kws</code> 的 JSON 里解析出"小云小云"，然后通知服务层切换状态。唤醒词是支持自定义的（<code>wuw</code> 参数里可以传多个词），默认"小云小云"。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>为什么唤醒词要在本地跑？云端不是识别率更高吗？</div>
+        <div class="point">考察：本地 vs 云取舍</div>
+        <div class="a">唤醒词这个场景，本地是<b>刚需</b>：① 延迟——唤醒词必须毫秒级响应，云端来回一趟网络至少几百毫秒，用户会觉得"叫不动"；② 可用性——车在地库、隧道没信号，唤醒必须能用；③ 隐私——唤醒词是持续监听的，全量传云端有隐私风险。云端方案我了解，效果确实更好（多麦克风降噪、抗噪），所以我把唤醒做成"本地优先"，等唤醒成功进入识别阶段再视网络切在线/离线。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>唤醒和识别不能同时录音，你怎么做到无缝切换的？</div>
+        <div class="point">考察：资源切换</div>
+        <div class="a">这个坑很典型：一个 AudioRecord 只能被一个引擎用，唤醒和 ASR 同时开必炸。我的做法：① 唤醒成功 → <code>stopRecognize()</code> → SDK 回调 <code>STATE_CLOSE</code> → 释放唤醒的 AudioRecord；② 唤醒引擎的 HandlerThread <code>quitSafely()</code> 退出；③ 全新创建 ASR 引擎的 AudioRecord（走 <code>AliyunASRUtil</code> 或 <code>XunfeiOfflineASRUtil</code>）。配合状态机 <code>WAIT_WAKEUP → WAKEUP_SUCCESS → WAIT_REGON</code> 单向推进，保证任意时刻只有一个录音源活着。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>唤醒初始化失败、或者 SDK 报错，你怎么处理的？</div>
+        <div class="point">考察：异常容错</div>
+        <div class="a">分三种：① <b>AudioRecord 初始化失败</b>——重试 3 次，带退避延迟；② <b>鉴权文件没下载</b>（错误码 240088/240070）——这常见于首次装车没网，这种不重试，等网络回调恢复后自动重新初始化；③ <b>SDK 状态不对</b>（240007）——必须先 <code>cancelDialog()</code> 把 SDK 拉回 idle 再重试，否则卡死恢复不过来。另外我维护了一张 20+ 条的错误码映射表，把 140008/240066/41010105 这些码都翻译成人话，方便车上现场定位。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B4 ASR ═══════════════ -->
+    <section class="card" id="b4">
+      <h2 class="sec">B4 <span class="badge">ASR 语音识别</span></h2>
+      <div class="prog">🎬 用的哪家 ASR → 🔍 在线/离线怎么切 → 🕳️ 重复启动、回声、缓冲区这些坑 → 🚀 错误体系。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>ASR 用了哪家的？为什么用两套？</div>
+        <div class="point">考察：方案选型</div>
+        <div class="a">两套：<b>阿里云 NUI 在线 ASR</b>（<code>wss://nls-gateway.cn-shanghai.aliyuncs.com</code>，上海/深圳双地域，识别率 95%+）+ <b>讯飞 AIKit 离线 ASR</b>（<code>ee62fa27c</code> 中英听写能力）。为什么要两套？车机场景网络不是恒定的：市区有网用在线（效果最好），地库、隧道、偏远地区断网就切离线（还能继续识别），两套共用同一个 <code>IASRUtil</code> 接口，业务层无感切换。这也是 POC 要验证的核心问题之一：离线能不能顶住。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>在线和离线怎么切换？什么时候用哪个？</div>
+        <div class="point">考察：配置与兜底</div>
+        <div class="a">两处判断：① <b>配置开关</b>——<code>ConfigManager.getASREngine()</code> 从车机外部配置文件读 <code>ASR_ENGINE=online/offline</code>，可以在不重装的情况下切引擎（测试现场也方便）；② <b>运行时网络兜底</b>——在线模式下，唤醒成功后发现没网，直接播报"无网络连接"并回待唤醒，不会傻等；离线模式则根本不依赖网络，LLM 那步再单独做联网检查。切换成本很低，因为两个引擎都实现了 <code>IASRUtil</code>，接口一模一样。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>怎么防止 ASR 重复启动？这种问题实际遇到过吧？</div>
+        <div class="point">考察：并发控制</div>
+        <div class="a">遇到过，而且很典型。当时是：TTS 播完回调要启动下一轮 ASR，同时用户又说了话触发另一个启动路径，两个线程同时进 <code>startASRListening()</code>，结果开了两个识别会话。我的防护是三层：
+        <br>① <code>synchronized startASRListening()</code>——方法级互斥，同一时刻只有一个线程能进；
+        <br>② <code>isStartingSpeechRecognition</code> 标志位——进了就置 true，返回前统一 reset，防止重入；
+        <br>③ 状态机前置检查 <code>isASRListeningAllowed()</code>——如果当前是 <code>WAIT_REGON</code>（正在识别）就直接 return，从业务语义上就不允许重复启动。
+        <br>还有一层工程细节：这个标志位全项目有 8 处赋值，我每处都打了编号日志（"设值处 N"），出问题能看出是谁改的、什么时候改的。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>怎么避免把 TTS 的声音录进 ASR？</div>
+        <div class="point">考察：声学回声消除</div>
+        <div class="a">三层防护：① <b>硬件/系统级回声消除</b>——AudioRecord 初始化时对 session 开启 <code>AcousticEchoCanceler</code>；② <b>音源选择</b>——Android 10+ 用 <code>MediaRecorder.AudioSource.VOICE_COMMUNICATION</code>，这是通话级音源，自带降噪；③ <b>业务互斥</b>——最硬的一层：TTS 一开始播，我立刻 <code>asrUtil.stopRecognize()</code> 把识别停掉，播完再开。为什么需要第三层？因为 AEC 只能消掉喇叭直出的声音，车里声音复杂（风噪、发动机、人声混响），纯靠 AEC 不保险，状态机互斥才是根治。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>ASR 的缓冲区、录音文件这些细节，你踩过什么坑？</div>
+        <div class="point">考察：健壮性细节</div>
+        <div class="a">几个小坑：① <b>队列满</b>——音频帧进 <code>LinkedBlockingQueue</code>，满 100 帧就丢最老的（优先保最新）；② <b>缓存超时</b>——SDK 还没给 taskId 时音频先缓存，5 秒没消费就清空，避免残留脏数据；③ <b>并发写文件</b>——"文件已关闭还在写"的崩溃，我用 <code>audioFileLock</code> 同步块把文件打开/写入/关闭串行化；④ <b>空文件</b>——没有 taskId 不创建文件。这些小问题单个看都不起眼，但车载长跑环境下（连续监听几小时）任何一个都可能偶发崩溃。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>ASR 的错误码体系你怎么设计的？</div>
+        <div class="point">考察：错误处理设计</div>
+        <div class="a">统一走 <code>getMsgWithErrorCode</code> 映射表：20+ 错误码 → 中文提示 + 三个行为标记（是否 Toast、是否朗读、是否重启识别）。特殊错误单独处理：<code>SILENT_SPEECH</code>（用户超时没说话）→ 1 秒后隐藏气泡回待唤醒，不打扰；鉴权类错误（240088/140008）→ 不重试，等网络恢复自愈。我刻意把"错误处理"和"业务逻辑"分开，所有引擎的错误都归一成同一套回调，业务层只关心 <code>onError(msg, showToast, restart)</code> 三个参数。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B5 TTS ═══════════════ -->
+    <section class="card" id="b5">
+      <h2 class="sec">B5 <span class="badge">TTS 语音合成</span></h2>
+      <div class="prog">🎬 TTS 怎么选的 → 🔍 流式播报的实现 → 🕳️ 取消、声线、语音包这些细节。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>TTS 你用的什么方案？为什么流式 + 离线两套？</div>
+        <div class="point">考察：场景化设计</div>
+        <div class="a">三套，各有分工：
+        <br>① <b>在线流式 TTS</b>（<code>AliyunStreamUtil</code>，声线 zhixiaoxia）——AI 回答专用，边生成边播，首字 0.3s；
+        <br>② <b>离线 TTS</b>（<code>AliyunOfflineTTSUtil</code>，默认声线 aijia）——启动时那句"你好，请说"、车控反馈这些必须 100% 能播的，断网也要响；
+        <br>③ <b>系统 TTS</b>（<code>SystemTtsManager</code>）——最后兜底。
+        <br>为什么离线要单独一套？因为在线 TTS 首次需要下载鉴权文件，没网会失败，车控反馈"车窗已打开"这种话如果播不出来，用户会以为没执行。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>流式播报是怎么播出来的？怎么实现边生成边说话？</div>
+        <div class="point">考察：流式链路 + 体感优化</div>
+        <div class="a">这个我踩的坑最深。最早我做的是"等 AI 完整生成一整段 → 一次性丢给 TTS 合成 → 合成完再播放"，结果用户问完一句话，屏幕要干等两三秒才出字、三四秒才出声，体验非常差，评审会上被直接打回。
+        <br>后来改成<b>全链路流式，三层都在流</b>：
+        <br>① 大模型流式返回——用 llmclient 的流式服务（SSE 那种），AI 每生成一小段就回调一次 <code>onChunk</code>；
+        <br>② 流式 TTS——把阿里云 NUI 的 TTS 切到流式输入模式（<code>MODE_STREAM_INPUT_TTS</code>），拿到 chunk 直接 <code>sendStreamInputTts(chunk)</code> 推给云端，云端边合成边往回推 PCM 音频，通过 <code>onStreamInputTtsDataCallback</code> 实时回调；
+        <br>③ AudioPlayer 边收边放——底层是 AudioTrack，数据进来就写缓冲区开始播，不用等整段合成完。
+        <br>所以用户体感是：AI 才说到一半，声音已经出来了，首字延迟压到 0.3 秒左右，浮窗文字也同步滚动。入口在 <code>VoiceAssistantService.queryQianwen</code>，<code>onChunk</code> → <code>streamUtil.speak(chunk)</code>。
+        <br>还有个关键工程细节：TTS 一开始播，我立刻 <code>stopRecognize()</code> 把 ASR 停掉——不然麦克风会把喇叭里 AI 的声音录进去，当成用户下一句话识别，AI 就开始自问自答了。这是上线第一天就翻过的车（苦笑）。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>TTS 取消时，你靠什么保证状态不残留？</div>
+        <div class="point">考察：并发与状态一致性</div>
+        <div class="a">这个我专门处理过，因为 SDK 的取消回调是异步的，你发了 cancel 它可能过几百毫秒才回调，这时候如果直接复用 TTS 实例，可能播到一半的音频还在往外吐。我的做法：① <code>cancelStreamInputTts()</code> 发取消；② 立即 <code>audioPlayer.stop()</code> 停播放；③ <code>synchronized { isSynthesizing = false; }</code> 强制同步标志位——代码注释里我写的是"无论成功与否，强制同步状态（避免 SDK 回调延迟导致的状态不一致）"。这套"发取消 + 主动停 + 强制同步"三连是踩过坑总结出来的。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>离线语音包（声线）你是怎么管理的？</div>
+        <div class="point">考察：资源管理</div>
+        <div class="a">离线 TTS 的声线是分语音包打包的：阿里云 aar 自带一个 <code>aijia</code>，够用但只有一种声音。我加了<b>启动时预下载</b>：<code>downloadOfflineSource()</code> 在 Service.onCreate 里异步拉取 <code>xiaoqi</code>（温柔女声）等 zip 包，解压到模型目录。初始化时 <code>checkOfflineVoicePackage()</code> 检查目标声线是否存在，不存在就回退到自带的 aijia，保证"永远有声音可用"。下载失败只是没有新声线，不影响主流程——这类降级设计车机上到处都是。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B6 LLM ═══════════════ -->
+    <section class="card" id="b6">
+      <h2 class="sec">B6 <span class="badge">LLM 集成与流式</span></h2>
+      <div class="prog">🎬 接了几个模型怎么封装 → 🔍 切模型、结构化输出 → 🕳️ 竞态、重试 → 🚀 延迟优化。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>你接了几个大模型？怎么封装的？</div>
+        <div class="point">考察：可扩展架构</div>
+        <div class="a">三个：<b>千问</b>（dashscope SDK）、<b>豆包</b>（火山引擎 Ark SDK）、<b>芯擎端模型</b>（私有 SDK，车机本地推理）。封装上我做了两层抽象：
+        <br>① <code>ILlmClientStreamService</code> 接口 + <code>StreamCallback</code> 回调——三个模型各自实现，业务层不关心底层是哪个；
+        <br>② <code>createStreamServiceByModel</code> 工厂——按模型名创建对应实现。
+        <br>另外还留了一条非流式回退 <code>TongyiQianwenUtil</code>（自实现 OkHttp + 指数退避重试），保证流式通道异常时还能出结果。选模型是按推理能力和速度排的：qwen-max 最强、qwen-plus 均衡、qwen-turbo 最快，代码里都给了注释。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>回答到一半，用户切模型，你怎么办？</div>
+        <div class="point">考察：热切换竞态处理</div>
+        <div class="a">这是我最怕的竞态场景之一。流程：① 收到 <code>EVENT_SWITCH_MODEL</code> 事件，先 <code>removeCallbacks</code> 掉上一个还没执行的切换任务（防连点）；② 停 TTS、<code>streamClient.cancelCurrentRequest()</code> 取消当前流式请求；③ <b>关键</b>——等 300ms 让 SDK 的 <code>onCancel</code> 回调落地（onCancel 里会置 <code>isCancelTask=true</code>）；④ 确认取消完成后再换 <code>currentStreamService</code> 并重新 set；⑤ 用缓存的 <code>lastValidQuestion</code> 直接重发请求，用户看到的是"已切换到豆包，正在重新回答"。
+        <br>如果不等 onCancel，新请求和旧请求的回调会串，屏幕上可能同时滚两个模型的答案。这也是"取消类回调必须等完成"的一个实战案例。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>LLM 返回的导航/音乐/图片这些结构化内容，你怎么解析的？</div>
+        <div class="point">考察：多模态输出</div>
+        <div class="a">约定协议：LLM 输出带前缀的结构化字段，客户端按前缀路由。比如导航：<code>navi:{"endLongitude":"116.39","endLatitude":"39.91","poiName":"天安门"}</code> → 解析成 <code>NavigationData</code> → 调起导航 App；音乐：<code>play_music;歌名</code> → 走 QQ 音乐 URI 播放；图片：<code>onImageAttachment</code> 回调里 base64 先存 MMKV（用时间戳做 key），再发事件让浮窗 Glide 加载。在 <code>StreamCallback</code> 里我拆了 6 个独立回调（文本/食物/景点/音乐/导航/图片），各订阅各的，互不干扰。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>LLM 请求失败、超时，你怎么重试？</div>
+        <div class="point">考察：可靠性</div>
+        <div class="a"><code>enqueueRequest</code> 里做了两层：① <b>网络异常</b>——ConnectException / SocketTimeoutException 区分连接超时和读取超时，指数退避（1s、2s）最多重试 2 次；② <b>HTTP 错误</b>——5xx、429 才重试，4xx 不重试（那是请求本身的问题，重试也没用）。三次都失败就回调错误：语音播"这个问题我不太会呢"，状态回待唤醒。超时参数也调过：连接 5s、读取 15s、写 5s，单次请求总预算约 13 秒，再久用户就烦了。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>首字延迟从 2-3s 压到 0.3s，除了流式还做了什么？</div>
+        <div class="point">考察：性能优化链路</div>
+        <div class="a">流式是主因，但配套做了三件事：① <b>连接复用</b>——OkHttp 配了连接池（5 个空闲连接保 5 分钟），避免每次握手；② <b>提前初始化</b>——流式 TTS 在服务启动时就预创建，第一个 chunk 来了直接用，不用现建；③ <b>UI 先出"思考中"</b>——LLM 还没返回前浮窗先显示状态，用户感知上"有响应"。延迟优化从来不是单点，是链路每一环的累积。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B7 车控 ═══════════════ -->
+    <section class="card" id="b7">
+      <h2 class="sec">B7 <span class="badge">车控</span></h2>
+      <div class="prog">🎬 车控怎么调到硬件 → 🔍 3D 可见即可说的特殊性 → 🕳️ 边界、测试。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>车控具体是怎么调到车窗、空调的？</div>
+        <div class="point">考察：核外能力</div>
+        <div class="a">走的是公司自研的 <code>CarControlSDK</code>（<code>com.fii.foxconn.carcontrolsdk</code>）：<code>CarControlManager.getInstance().init(context)</code> 初始化，等 <code>isReady()</code>（我做了 0.5s 超时轮询），然后调 <code>setWindowState(WINDOW_FRONT_LEFT, STATE_ON)</code>、<code>getACTemperature(AC_AREA_LEFT)</code> 这类接口，返回 0 表示成功。SDK 底层是透传到车机的整车控制器（CAN 总线那层），我们应用层只拿封装好的语义接口。另外因为我们是系统签名应用，还能干普通 App 干不了的事，比如 <code>forceStopPackage</code> 反射杀进程。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>3D 界面上的"可见即可说"和 2D 有什么不同？</div>
+        <div class="point">考察：2D/3D 机制差异</div>
+        <div class="a">核心差异：<b>2D 是控件树，3D 不是</b>。
+        <br>2D：无障碍服务能拿到 <code>AccessibilityNodeInfo</code> 节点树，有文字有坐标，能直接点击。
+        <br>3D：Launcher 的 3D 场景是引擎渲染的 Mesh，无障碍根本抓不到。所以 3D 走的是"<b>反向推送</b>"：3D Launcher 通过车控 SDK 的 <code>onCallBackVoiceAssistant</code> 回调，把当前可见的 3D 元素（车模、氛围灯、充电口）打包成 JSON 推给我们，我们存列表；语音匹配到元素名后，调 <code>setVoiceCommandToAndroid</code> 让 Launcher 自己执行点击。一句话：2D 是我"抓"界面，3D 是界面"送"给我。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>温度 16-32、风速 0-8 这种边界是怎么定的？超了会怎样？</div>
+        <div class="point">考察：边界与用户体验</div>
+        <div class="a">这是跟整车确认的硬件能力范围：空调温度 16-32°C、风速 0-8 档。我在执行前做校验，超范围直接语音反馈"温度超出范围，无法执行"，不会真的发指令给整车（避免误操作硬件）。还有一个细节：调温度是"相对值"——用户说"调高两度"，我会先 <code>getACTemperature</code> 读当前值，加 2 后再校验 16-32，而不是无脑执行。这套逻辑在 <code>executeCarControl</code> 里，注释都标了。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>复合指令、"二十六度"这些 NLP 细节，你测试怎么覆盖？</div>
+        <div class="point">考察：测试意识</div>
+        <div class="a">① <b>单元测试</b>——<code>CarControlUtil.processCarCommand</code> 是纯逻辑，可以脱离真车测：喂"打开空调和关闭车窗""二十六度""调高两度到 32 度"，断言返回的反馈文本；② <b>边界用例</b>——中文数字全覆盖（零到万）、极值词（最大/最高）、超范围（35 度）、无参指令、误拆场景（"我和谁吃饭"）；③ <b>集成测试</b>——车上实测每个设备每种说法，正则匹配失败的现场改 JSON 即可。测试设计的关键是：把"语言理解"和"硬件执行"分层，前者可以完全 mock 掉真车。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B8 可见即可说 ═══════════════ -->
+    <section class="card" id="b8">
+      <h2 class="sec">B8 <span class="badge">可见即可说 / 无障碍</span></h2>
+      <div class="prog">🎬 可见即可说整体怎么做 → 🔍 匹配与兜底细节 → 🕳️ 服务被杀、性能问题。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>"可见即可说"具体是怎么实现的？</div>
+        <div class="point">考察：核心机制 + 2D/3D 差异</div>
+        <div class="a">说白了就是：屏幕上显示什么，你念什么就能点什么。车机上有两块屏幕场景，做法完全不一样。
+        <br><b>2D 原生界面（基于无障碍服务）：</b>无障碍服务会收到窗口切换、内容变化的系统事件，我先做 300ms 防抖避免高频刷新，然后 <code>getRootInActiveWindow()</code> 拿到整棵控件树，深度优先遍历，把"用户可见、有文字、有坐标"的节点都收进内存列表（比如按钮文字"蓝牙设置"、坐标 (x, y)）。等用户说"打开蓝牙设置"，ASR 出结果后做<b>模糊匹配</b>——先去标点空格，再把中文数字统一成阿拉伯数字（"第三页"和"第3页"必须能对上），匹配上了就对这个节点执行 <code>performAction(CLICK)</code>；有些控件不响应标准点击，我就用 <code>dispatchGesture</code> 在它中心坐标模拟一根手指点下去，这是兜底。
+        <br><b>3D 场景（Launcher 3D 引擎）：</b>3D 界面不是控件树，无障碍根本抓不到，比如车模、充电口、氛围灯这种。车机 3D Launcher 会通过车控 SDK 的回调，把当前屏幕上"可见的 3D 元素"打包成 JSON 推给我们（<code>onCallBackVoiceAssistant</code>），存成 <code>visible3DElements</code> 列表；语音匹配到元素名，再调 <code>setVoiceCommandToAndroid</code> 回给 Launcher 让它自己执行点击。
+        <br>还有个细节：2D 和 3D 是分优先级串行处理的——先试系统导航指令（"返回上一页""回桌面"），再试 2D 节点，最后试 3D 元素，避免"返回"这种词被误当成按钮点了。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>为什么还要 dispatchGesture 坐标点击？performAction 不就行了吗？</div>
+        <div class="point">考察：兼容性处理</div>
+        <div class="a">因为我实际遇到 <code>performAction(CLICK)</code> 失败的三种情况：① 节点虽然可点但事件被父容器拦截；② 节点 <code>isClickable=false</code> 但 bounds 有效（很多自绘控件）；③ 车机厂商魔改了无障碍事件分发。坐标点击 <code>dispatchGesture</code> 是模拟真实手指，在系统层面更"底层"，成功率更高。我的策略是<b>先标准点击、失败再坐标兜底</b>，双保险。但坐标点击也有缺点：依赖屏幕坐标，屏幕旋转/缩放后就失效，所以只能当 fallback。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>无障碍服务被系统杀了、或者用户关了，怎么办？</div>
+        <div class="point">考察：降级与引导</div>
+        <div class="a">分三层：① <b>检测</b>——MainActivity 启动时用 <code>AccessibilityUtils</code> 检查服务是否启用，没启用弹引导跳设置页；② <b>降级</b>——运行中 <code>MyAccessibilityService.getInstance() == null</code> 就直接跳过 2D 匹配（3D 和车控不受影响），不会崩；③ <b>资源回收</b>——<code>onInterrupt</code> / <code>onDestroy</code> 里把抓到的节点全部 <code>recycle()</code> 防泄漏。可见即可说属于"锦上添花"功能，挂了不能拖累主流程，这是底线。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>遍历整棵控件树，会不会卡 UI？</div>
+        <div class="point">考察：性能意识</div>
+        <div class="a">会，所以做了四件事：① <b>300ms 防抖</b>——<code>TYPE_WINDOW_CONTENT_CHANGED</code> 事件很频繁，合并成一次刷新；② <b>只收可见节点</b>——<code>isVisibleToUser</code> 过滤，屏幕外的直接跳过；③ <b>子节点 recycle</b>——遍历完立即回收，防止节点对象堆积导致的内存问题；④ <b>深度排序 + 命中即返回</b>——深层节点优先匹配，一般第一二个候选就命中了，不会全表扫完。说实话在大屏车机上节点多时还有优化空间（比如缓存窗口 hash），但当前规模下已经够用。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B9 导航 ═══════════════ -->
+    <section class="card" id="b9">
+      <h2 class="sec">B9 <span class="badge">导航与多 App 联动</span></h2>
+      <div class="prog">🎬 导航怎么调起 → 🔍 音乐怎么控制 → 🕳️ 失败兜底。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>导航是怎么调起来的？高德百度都支持？</div>
+        <div class="point">考察：URI Scheme 与跨 App</div>
+        <div class="a">靠 URI Scheme 跳转，写了 <code>AMapNaviUtils</code>：① 高德路线规划 <code>amapuri://route/plan/?sourceApplication=FiiCarAIVision&dlon=...&dlat=...&dname=...</code>；② 高德直接导航 <code>androidamap://navi?lon=...&lat=...&dev=1&style=2</code>（dev=1 表示坐标需要国测加密）；③ 百度导航 <code>baidumap://map/navi?query=...&location=lat,lon&coord_type=gcj02</code>。LLM 返回 <code>navi:</code> 字段就走百度（测试账号有百度 key），导航列表选择走高德（预装的高德）。每条路径都先 <code>resolveActivity</code> 判断有没有 App 能处理，避免 <code>ActivityNotFoundException</code> 崩掉。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>音乐控制怎么做的？不同音乐 App 怎么兼容？</div>
+        <div class="point">考察：媒体交互</div>
+        <div class="a">两条路：① <b>通用方案</b>——<code>AudioManager.dispatchMediaKeyEvent</code> 派发 <code>KEYCODE_MEDIA_NEXT/PREVIOUS/PLAY/PAUSE</code>，谁持有媒体焦点谁响应，任何音乐 App 都认；② <b>QQ 音乐车机版专属</b>——它提供 <code>qqmusiccar://</code> scheme，支持搜索点歌：<code>qqmusiccar://?action=8&mb=true&m1=true&search_key={base64(歌名)}</code>，歌名要 Base64 编码避免 URL 转义问题。为什么两套？通用方案只能切歌暂停，做不到"播放某首歌"，点歌必须走专属 scheme。这算跨 App 深链集成的典型做法。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>App 没装、或者跳转失败，你怎么兜底？</div>
+        <div class="point">考察：健壮性</div>
+        <div class="a">① 跳转前先 <code>Utils.isAppInstalled()</code> 检查包名，没装直接语音提示"没有安装 QQ 音乐车机版"，不会傻跳；② <code>resolveActivity</code> 再确认一遍；③ 外层 try-catch，异常时播报"加载导航失败"并回待唤醒；④ 成功启动导航后我会立刻退出语音监听（切回待唤醒），避免导航语音被我的 ASR 录进去。还有一个细节：<code>queries</code> 里显式声明了高德包名，Android 11 的包可见性才放行。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B10 系统集成 ═══════════════ -->
+    <section class="card" id="b10">
+      <h2 class="sec">B10 <span class="badge">系统集成与稳定性</span></h2>
+      <div class="prog">🎬 系统签名怎么配 → 🔍 保活、网络自愈、音频焦点 → 🕳️ 兼容性坑。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>系统签名 + platform 这套是怎么配的？</div>
+        <div class="point">考察：系统级应用</div>
+        <div class="a">三件套：① Manifest 里 <code>android:sharedUserId="android.uid.system"</code>——共享系统进程身份，App 就能拿到系统级权限；② 签名用平台 key——<code>key/se1000.jks</code>，alias 是 <code>platform</code>（这是车机厂商提供的平台签名，普通开发者签不了）；③ build.gradle 里 <code>signingConfigs.myrelease</code> 同时给 release 和 debug 用（必须同一把 key，否则升级会报签名冲突）。有了这套，我们才能拿 <code>READ_PRIVILEGED_PHONE_STATE</code>、绕过后台限制、反射调 <code>forceStopPackage</code>。这是车机 IDH/ODM 项目的标配玩法。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>前台服务被系统 kill 了，你怎么拉回来？</div>
+        <div class="point">考察：保活</div>
+        <div class="a">三层：① <code>onStartCommand</code> 返回 <code>START_STICKY</code>——被 kill 后系统会尝试重建；② <code>onDestroy</code> 里注册 <code>AlarmManager</code> 5 秒后 PendingIntent 再启动服务——AlarmManager 比 START_STICKY 更可靠，因为 PendingIntent 是系统级闹钟；③ 极端情况 <code>restartApp</code>——用 AlarmManager 拉 MainActivity + <code>Process.killProcess</code> + <code>System.exit(0)</code> 自杀重启（这招主要是 NUI 鉴权文件 bug 触发，正常情况下用不到）。坦白说车机上系统内存紧张，进程被杀很常见，这套"STICKY + Alarm + 自愈"是必须的。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>网络断了、恢复了，你怎么自愈？</div>
+        <div class="point">考察：链路自愈</div>
+        <div class="a">用 <code>ConnectivityManager.NetworkCallback</code> 监听：
+        <br><b>onLost</b>（断网）：置 <code>isNetWorkAvailable=false</code>，4 秒后强制回待唤醒 + 重启唤醒监听——为什么延迟 4 秒？因为用户可能正说到一半，不能立刻打断；
+        <br><b>onAvailable</b>（恢复）：① 重新拉 token；② 重新初始化 TTS——首次装车没网时 TTS 鉴权文件下载会失败（140008），断网恢复后必须重试；③ 4 秒后重启唤醒。
+        <br>这套自愈逻辑处理了 POC 期间最头疼的"第一次装车没网导致语音起不来"问题，现在断网恢复后全程无人值守自动恢复。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>音频焦点怎么管的？导航播报会不会被地图声音打断？</div>
+        <div class="point">考察：音频策略</div>
+        <div class="a"><code>AudioFocusManager</code> 用 <code>AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE</code>——这是最严的独占型焦点，适合语音识别/播报场景。回调里处理四种情况：GAIN（拿回焦点继续）、LOSS（永久丢失，停）、LOSS_TRANSIENT（临时丢失，停）、LOSS_TRANSIENT_CAN_DUCK（可以降低音量让路）。实际场景：地图播报"前方拥堵"时会抢走焦点，我收到 LOSS 就停 TTS；地图播完了焦点回来我继续。唤醒监听启动前会先释放焦点（<code>ABANDON_AUDIO_FOCUS</code>），避免录音时跟音乐打架。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>开机自启怎么做的？</div>
+        <div class="point">考察：开机链路</div>
+        <div class="a"><code>BootCompletedReceiver</code> 监听 <code>ACTION_BOOT_COMPLETED</code> 和 <code>QUICKBOOT_POWERON</code>（部分车机快速启动走这个），priority 设 1000 抢优先接收。收到广播后启动 MainActivity（带 <code>FLAG_ACTIVITY_NEW_TASK</code>，因为广播里启动 Activity 必须带这个 flag），MainActivity 再走正常流程：权限引导 → 绑定服务 → 前台服务 → 唤醒监听。为什么不直接广播里 startForegroundService？因为 Android 8+ 前台服务启动限制，而且权限还没申请，走 MainActivity 更稳。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>Android 13/14/15 的兼容性你踩过哪些坑？</div>
+        <div class="point">考察：适配经验</div>
+        <div class="a">挑典型的说：① <b>Android 13 通知权限</b>——<code>POST_NOTIFICATIONS</code> 必须动态申请，不然前台服务通知不显示；② <b>Android 14 前台服务类型</b>——<code>foregroundServiceType</code> 必须声明并匹配实际用途（microphone/phoneCall），不然启动直接抛 <code>ForegroundServiceTypeNotAllowedException</code>；③ <b>Android 10 分区存储</b>——外部配置文件改用 MediaStore API 读写（<code>ConfigManager</code>），不能直接写 /sdcard；④ <b>Android 11 包可见性</b>——<code>&lt;queries&gt;</code> 显式声明要查询的高德包名；⑤ <b>隐式 Intent</b>——Android 14 对隐式 Intent 有更严格限制，跳转第三方 App 时该显式传 package 就传。这五个是我实际踩过的。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B11 并发 ═══════════════ -->
+    <section class="card" id="b11">
+      <h2 class="sec">B11 <span class="badge">并发与线程模型</span></h2>
+      <div class="prog">🎬 用了哪些异步机制 → 🔍 防重入 → 🕳️ 切模型竞态、资源释放顺序。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>项目里异步处理你用了哪些机制？</div>
+        <div class="point">考察：多线程选型</div>
+        <div class="a">五种，各有各的用途：① <b>HandlerThread</b>——唤醒/ASR 这类"后台长驻 + 主线程 post 任务"的场景（<code>VoiceWakeupUtil</code>、<code>AliyunASRUtil</code>）；② <b>主线程 Handler</b>——<code>mainHandler</code> / <code>switchModelHandler</code>，UI 更新和延迟任务；③ <b>SingleThreadExecutor</b>——<code>networkExecutor</code>，网络请求串行池；④ <b>EventBus</b>——跨组件通信，自带 MAIN/BACKGROUND 线程切换；⑤ <b>OkHttp 异步 enqueue</b>——HTTP 请求自带回调线程。选择逻辑就一条：<b>低频 UI 操作走主线程 Handler，高频后台任务走 HandlerThread，跨组件解耦走 EventBus，网络走 OkHttp</b>。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>ASR 启动你是怎么做防重入的？</div>
+        <div class="point">考察：重入防护</div>
+        <div class="a">三层：① <code>synchronized</code> 方法级互斥；② <code>isStartingSpeechRecognition</code> 标志位（进置 true 出置 false）；③ 状态机前置检查 <code>isASRListeningAllowed()</code>——正在识别（WAIT_REGON）就直接拒绝。还处理过一个特殊情况：标志位是 true 但 ASR 实际没初始化成功，这种"脏标志"我会强制重置，防止永远卡住。这个标志位全项目 8 处赋值，每处都打"设值处 N"编号日志，定位谁改的、什么时候改的，一眼就清楚。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>切模型时的 onCancel 竞态，你具体怎么处理的？</div>
+        <div class="point">考察：竞态处理</div>
+        <div class="a">经典竞态：取消请求是异步的，onCancel 回调还没到，新模型请求就发了，两个回调同时活着。我的方案：① 发 <code>cancelCurrentRequest()</code>；② <code>switchModelHandler.postDelayed(..., 300)</code>——<b>留出 300ms 窗口等 onCancel 落地</b>（onCancel 里置 <code>isCancelTask=true</code>）；③ 300ms 后检查 <code>isCancelTask</code> 是否为 true，没到就再等（带 2 秒超时强制重置）；④ 确认取消完成才换服务并重发请求。这个"取消必须等完成"的教训，后来我到处都在用。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>Service 销毁时，资源释放的顺序你怎么排的？</div>
+        <div class="point">考察：生命周期管理</div>
+        <div class="a">onDestroy 里顺序很重要，我按"先停新请求、再停引擎、最后收线程"：① 反注册 EventBus；② 置 <code>isServiceActive=false</code>（所有入口立刻拒绝新任务）；③ 移除 mainHandler 全部回调；④ 线程池 <code>shutdown → awaitTermination(1s) → shutdownNow</code>（留 1 秒优雅收尾，超时强杀）；⑤ 唤醒/ASR/TTS 各自 release（内部 HandlerThread <code>quitSafely</code>）；⑥ 网络回调反注册；⑦ 摄像头停止。最后再注册一个 5 秒 Alarm 自重启。每个资源释放都判空，避免二次释放崩溃。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B12 性能 ═══════════════ -->
+    <section class="card" id="b12">
+      <h2 class="sec">B12 <span class="badge">性能与可靠性</span></h2>
+      <div class="prog">🎬 卡顿/内存问题怎么防 → 🔍 测试怎么做。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>这种长驻服务，你最担心哪类性能问题？怎么防？</div>
+        <div class="point">考察：性能意识</div>
+        <div class="a">最担心三类：① <b>内存泄漏</b>——长驻服务 + 异步回调，最容易泄漏。我的对策：统一用 ApplicationContext、Handler 静态内部类 + WeakReference（<code>MainHandler</code> 就是这么写的）、子节点及时 recycle；② <b>UI 卡顿</b>——无障碍遍历节点、GIF 切换、浮窗更新都收拢到主线程 Handler 串行化，高频事件防抖；③ <b>线程泛滥</b>——网络请求收敛到单线程池，不 new Thread 满天飞。实测长跑几小时内存曲线平稳。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>AudioRecord 长跑，你怎么保证不崩？</div>
+        <div class="point">考察：资源管理</div>
+        <div class="a">① 每次 start 前先 <code>release</code> 旧实例，防止"设备已被占用"；② 状态异常走 <code>STATE_CLOSE</code> 回调统一释放；③ 缓冲区大小用 <code>getMinBufferSize</code> 算出来再乘系数，防溢出；④ 录音数据写文件加锁防并发写；⑤ 初始化失败重试 3 次带退避，避免在车上"重启一次好一次"的玄学问题。车载环境音频设备竞争激烈（导航、电话、媒体都在抢），这套防护是实测出来的。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>测试你怎么做？覆盖率到多少？</div>
+        <div class="point">考察：测试能力</div>
+        <div class="a">分三层：① <b>单元测试</b>——车控指令（<code>CarControlUtil</code>）、中文数字转换、Token 签名（mock OkHttp）这些纯逻辑全覆盖；② <b>集成测试</b>——真机/真车跑"唤醒 → 识别 → 车控 → 问答"全链路用例，断网/恢复、切模型、连续对话 5 轮这些场景脚本化；③ <b>性能监控</b>——启动耗时、首字延迟、内存占用随手记录。坦白说覆盖率没到很高（车控类 80%+，Service 编排层低一些），因为 UI 和硬件耦合的部分自动化成本高，主要靠场景化手动测试补。面试时重点讲"哪些测了、哪些没测、为什么"比报一个虚假数字可信。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B13 调试 ═══════════════ -->
+    <section class="card" id="b13">
+      <h2 class="sec">B13 <span class="badge">调试与可观测性</span></h2>
+      <div class="prog">🎬 怎么排查疑难 bug → 🔍 日志工程的理念 → 🕳️ 高频 bug 总结。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone o">开场</span>用户反馈"语音没反应"，你怎么排查？</div>
+        <div class="point">考察：调试思路</div>
+        <div class="a">按漏斗排查：① 先看状态——<code>assistantStatus</code> 是不是卡在某个状态了？看编号日志"第 N 个进入等待唤醒监听方法的入口"，确定是从哪条路进的；② 再看标志位——<code>isStartingSpeechRecognition</code>、<code>isTTSSpeaking</code>、<code>isCancelTask</code> 是不是被谁置 true 没复位（全项目每处赋值都有编号日志，能查到是哪行改的）；③ 再看链路——ASR 有没有出 <code>onFinalResult</code>？出了是走了命令链哪一支？被哪个前置命令抢了？④ 最后看网络/鉴权——是不是 240088 鉴权文件丢了？这套方法配合全链路编号日志，多数问题 10 分钟内定位。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone p">追问</span>为什么每个入口都要打"第 N 个"这种序号？</div>
+        <div class="point">考察：日志工程理念</div>
+        <div class="a">因为这个系统有 10+ 个"进入待唤醒"入口、7 个"启动 ASR"入口，它们代码长得几乎一样，肉眼根本分不清是哪条路触发的。带序号的 <code>Log.w("----------第N个入口---------")</code> 一秒定位触发路径。这是我特别想强调的一个工程习惯：<b>日志不是记录"发生了什么"，而是记录"从哪来的"</b>。多线程 + 状态机的系统，光看结果日志根本没法排查，路径日志才是关键。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone d">深挖</span>这项目里 Bug 频率最高的三类是什么？</div>
+        <div class="point">考察：经验总结</div>
+        <div class="a">① <b>状态/并发类</b>——ASR 重复启动、TTS 与 ASR 互相干扰，占比最高，最后用状态机 + 标志位 + 互斥解决；② <b>资源类</b>——AudioRecord 占用冲突、离线语音包没下载、缓存队列满，用重试 + 降级 + 预下载解决；③ <b>网络/鉴权类</b>——首次装车没网导致鉴权文件缺失（140008/240088），用网络监听自愈解决。这三类其实也反推了架构该怎么做：状态机、降级策略、自愈机制——都是踩出来的。</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ B14 开放 ═══════════════ -->
+    <section class="card" id="b14">
+      <h2 class="sec">B14 <span class="badge">开放性问题</span></h2>
+      <div class="prog">🚀 最后的高阶题：重写意愿、规模化、选型理由、国际化、价值观。</div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>如果让你重写这个项目，你会怎么改？</div>
+        <div class="point">考察：反思与视野</div>
+        <div class="a">四件事：① 拆模块——2856 行的核心服务拆成 <code>WakeupEngine / ASREngine / TTSEngine / LLMEngine / CommandRouter</code>，接口解耦、单测友好；② LLM 流式改原生 OkHttp + SSE，摆脱对闭源 aar 的依赖，方便私有化部署和换供应商；③ 状态机用 Kotlin StateFlow + 编译期校验，把非法状态转移从运行时 bug 变成编译错误；④ 上埋点——唤醒率、ASR 错误率、首字延迟 P99，让"体验好不好"可度量。核心一句话：从"能跑"到"可观测、可测试、可替换"。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>假设 1000 辆车上线，你这个架构扛得住吗？</div>
+        <div class="point">考察：规模化思维</div>
+        <div class="a">得拆开看：<b>车机端本来就是单机架构</b>，1000 辆车是 1000 个独立实例，不存在互相影响；真正的瓶颈在<b>云端</b>——阿里云 NUI、讯飞、大模型 API 的 QPS 和限流。要规模化得做：① 云端网关限流/排队，按用户等级分配；② 高频问题缓存（"今天天气"这类预渲染）；③ 离线优先——弱网场景走端模型（芯擎端模型就是为这个准备的），把云端压力导走；④ 监控 QPS、P99 延迟，容量规划。所以回答分两层：车机端没问题，云端要补限流和缓存。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>为什么不用 Jetpack Compose 重写 UI？</div>
+        <div class="point">考察：技术选型</div>
+        <div class="a">这个项目 UI 占比很小——一个 ChatActivity + 两个悬浮窗 + 系统设置引导，XML 完全够用且调试工具成熟（车机分辨率、字体、HMI 适配都有现成方案）。Compose 的优势在复杂动态界面和团队长期迭代，这里成本收益不划算。但我说过，如果 ChatActivity 要继续做复杂对话流，值得迁——<b>选型看场景不看潮流</b>。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>怎么支持海外车型 / 多语种？</div>
+        <div class="point">考察：国际化</div>
+        <div class="a">分四块：① 车控配置已按 <code>carVersion</code> 区分车型，海外版加配置即可；② 资源多语种——<code>strings.xml</code> + assets 多语言目录；③ 语音引擎换多语种模型——讯飞/阿里云都有英粤等多语种；④ LLM 换多语种 prompt 模板 + 路由。工作量主要在 ③④，架构上其实不用大改，这算是当初设计"引擎可插拔"的回报。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>你觉得自己在这个项目里最有技术含量的设计是什么？</div>
+        <div class="point">考察：亮点聚焦</div>
+        <div class="a">我排三个：① <b>4 状态状态机 + 入口序号日志</b>——把"多线程 + 异步回调 + 语音资源互斥"这个最难啃的硬骨头变成了可追踪、可复现的系统设计；② <b>车控配置驱动 + 复合指令 + 中文数字</b>——用最朴素的工程手段（JSON + 正则 + 解析器）解决了"自然语言控制硬件"的问题，还没引入重型 NLP；③ <b>双 ASR + 三 TTS + 三 LLM 的可插拔设计</b>——所有语音/模型能力都是接口抽象，换供应商只改一个实现类。这三个分别对应：正确性、业务价值、架构弹性。</div>
+      </div>
+
+      <div class="qa">
+        <div class="q"><span class="tone s">升华</span>最后聊聊：你觉得做车机语音和做手机语音，最大的不同是什么？</div>
+        <div class="point">考察：行业认知</div>
+        <div class="a">三个维度：① <b>环境</b>——车内噪声复杂（风噪、发动机、空调），语音要抗噪、要处理回声，手机相对安静；② <b>离线刚需</b>——地库、隧道、高速无网段，手机语音可以"等网"，车机语音必须"离线兜底"，所以唤醒、ASR、TTS 三块都要离线能力；③ <b>责任边界</b>——车机语音控制的是"车窗、空调、导航"，误识别是有物理后果的（比如误开窗），所以命令匹配必须严谨（正则 + 边界校验 + 反馈确认），容错策略和手机完全不是一个量级。这也是我觉得这个项目最有价值的地方：它让我把"识别准不准"和"执行对不对"两个问题分开了。</div>
+      </div>
+    </section>
+
+    <div class="footer">
+      📌 文档版本：<b>v1.1（拟人化·循序渐进版）</b> · 14 个主题 · 60+ 个问答 · 每个主题按「开场 → 追问 → 深挖 → 升华」递进 · 建议结合源码逐条演练
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
