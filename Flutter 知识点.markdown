@@ -84,6 +84,7 @@ Flutter App:
 > 按面试重要度和企业使用频率排序。**点击跳转对应章节**。
 
 ## 必会（面试 100% 问）
+- [Dart 语言必会语法速查（看代码不棘手版）](#dart)
 - [Widget — 一切皆是 Widget](#widget)
 - [布局系统 — Column/Row/Stack/Container](#layout)
 - [StatefulWidget + setState — 本地状态](#stateful)
@@ -109,6 +110,363 @@ Flutter App:
 - [Flutter 面试高频问题总汇](#interview)
 - [企业项目：native-android + flutter_module 混合架构解析](#enterprise)
 - [Flutter vs React Native / Compose 对比](#compare)
+
+---
+
+<a id="dart"></a>
+# 二点五、Dart 语言必会语法速查（看代码不棘手版）
+
+> **这一章解决什么问题**：你读 `flutter_module/lib` 下的代码时，常被一堆符号卡住——`??`、`?.`、`..`、`{required}`、`=>`,`late`、`as`、`static const`、`.new`。这一章把这些符号**逐个拆开**，每个都用你项目里的真实代码当例子，并标出 Java/Kotlin 里对应什么。**建议把它当成字典，看代码遇到不认识的符号先翻这里。**
+
+> [返回目录](#catalog)
+
+---
+
+## 1. 可空类型与空安全（Java 没有，最易卡）
+
+Dart 和 Kotlin 一样是**空安全**语言：一个变量默认「不可能为 null」，除非你显式加 `?`。Java 没有这层约束，所以这是你第一道坎。
+
+| 写法 | 含义 | 对标 Kotlin |
+|------|------|------|
+| `String name` | 非空，必须初始化 | `var name: String` |
+| `String? name` | 可空，可能为 null | `var name: String?` |
+| `name?.length` | 安全调用：null 时整体返回 null | `name?.length` |
+| `name ?? "默认"` | `??` 左为 null 时取右（Elvis） | `name ?: "默认"` |
+| `name ??= x` | 仅当 name 为 null 才赋值 | `name ?: run { name = x; name }` |
+| `name!.length` | `!` 非空断言：告诉编译器「我保证不 null」，null 时直接崩 | `name!!` |
+| `name as String` | `as` 强制类型转换；失败抛异常 | `name as String` |
+
+**项目真实例子**（`device_channel.dart` 第 38 行）——一行里集齐了 `?.`、`map`、`??`：
+
+```dart
+// 原生返回 Map?（可能为 null），结果又是个 Object
+return result?.map((k, v) => MapEntry(k.toString(), v == true)) ?? {};
+//       │       │                                            └ 整个为 null 时退回空 Map
+//       │       └ 安全调用：result 为 null 时，?.map 直接返回 null
+//       └ result 本身是 Map? 类型（来自 invokeMethod<Map>，可能为 null）
+```
+
+**再看一个（`device_channel.dart` 第 54 行）**——`??` 给默认值：
+
+```dart
+return r ?? false;   // r 是 bool?，没拿到就当 false。对标 Kotlin: r ?: false
+```
+
+**`!` 非空断言（`history_db.dart` 第 58-61 行）**——你确定此时非 null 时用：
+
+```dart
+if (_db != null) return _db!;   // 刚判过非空，! 告诉编译器「放一百个心」
+// 对标 Kotlin: if (_db != null) return _db!!
+```
+
+> 🔑 口诀：**`?` 声明可空、`?.` 防崩、`??` 兜底默认值、`!` 我担保非空（滥用会崩）**。看代码先找这几个符号，它们决定「这行会不会因为 null 崩」。
+
+---
+
+## 2. 变量与常量：var / final / const / static const
+
+| 写法 | 含义 | 对标 Kotlin |
+|------|------|------|
+| `var x = 1` | 可变、类型推断 | `var x = 1` |
+| `final x = 1` | 运行期只赋值一次（不可变） | `val x = 1` |
+| `const x = 1` | 编译期常量，值必须写死 | `const val x = 1` |
+| `static const x = 1` | 类级编译常量 | `companion object { const val x = 1 }` |
+
+**项目真实例子**（`device_channel.dart` 第 21、26 行）：
+
+```dart
+class DeviceChannel {
+  static const _channel = MethodChannel('com.pomodoro/device'); // 编译期常量单例通道
+  static const permAccessFineLocation = 'android.permission.ACCESS_FINE_LOCATION';
+  //        └ 类级常量，对标 Kotlin companion object 里的 const val
+  // 注意开头下划线 _channel = private（见第 5 节）
+}
+```
+
+> 🔑 口诀：**`var` 能改、`final` 只赋值一次、`const` 编译期就定死**。Widget 的字段几乎都是 `final`（不可变配置）。
+
+---
+
+## 3. 函数与参数：命名参数 / 箭头函数 / 匿名函数
+
+### 3.1 命名参数 `{required this.x}` —— 看代码最常遇到的「花括号」
+
+Dart 函数参数有两种：
+- **位置参数** `fn(String a, int b)`：按顺序传，对标 Java。
+- **命名参数** `fn({required String name, int age = 0})`：用 `name: '张三'` 传，**花括号 `{}` 就是命名参数标志**。
+
+`{required this.name}` 三个记号拆解（你之前问过的 `Greeting`）：
+- `{}` → 命名参数（对标 Kotlin `name = "张三"`）
+- `required` → 必填，不传编译报错
+- `this.name` → 语法糖：把传入的 `name` **直接存进字段** `this.name`
+
+```dart
+// 定义
+const Greeting({required this.name});
+// 调用（name: 就是传参）
+Greeting(name: '张三')   // 对标 Kotlin Greeting(name = "张三")
+```
+
+### 3.2 箭头函数 `=>` 与匿名函数
+
+`=>` 是「单表达式函数的简写」，对标 Kotlin 的 `{ expr }` 表达式体。
+
+```dart
+// 普通写法
+int add(int a, int b) { return a + b; }
+// 箭头简写（等价）
+int add(int a, int b) => a + b;
+```
+
+**匿名函数 + 下划线参数**（`timer_notifier.dart` 第 90 行）：
+
+```dart
+_timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+//                                                │     └ 参数没用到，用 _ 占位（Kotlin 也常用 _）
+//                                                └ 匿名箭头函数，等价于 (timer) { _tick(); }
+```
+
+> 🔑 口诀：**函数参数外面包 `{}` = 命名参数（调用时写 `名: 值`）**；`=>` 是把「return 一行」缩成箭头。
+
+---
+
+## 4. 类与构造函数（含单例 / 私有 / 构造函数引用）
+
+### 4.1 私有成员：`_` 前缀 = private
+
+```dart
+class TimerNotifier extends Notifier<TimerState> {
+  Timer? _timer;   // 下划线开头 = 私有，对标 Kotlin private val _timer
+}
+```
+Dart **没有 `private` 关键字**，规则是：标识符以下划线 `_` 开头 → 仅本库（本文件）可见。
+
+### 4.2 命名构造函数 + 私有构造函数（单例模式）
+
+`ClassName._()` 这种**带下划线**的构造函数 = 私有构造，外部 new 不了，用来做单例：
+
+```dart
+// history_db.dart 里的单例
+class HistoryDatabase {
+  static HistoryDatabase? _instance;
+  HistoryDatabase._();   // 私有构造：外部无法 new，只能走 instance getter
+  static HistoryDatabase get instance => _instance ??= HistoryDatabase._();
+  //                                        └ ??= 见第 1 节：为空才 new 一次
+}
+```
+
+### 4.3 `factory` 构造函数（另一种单例写法）
+
+`factory` 允许构造函数「不返回新实例，而是返回缓存/子类实例」——单例的经典写法：
+
+```dart
+class HistoryDb {
+  factory HistoryDb() => _instance;   // 不 new，直接返回既有的单例
+  static final HistoryDb _instance = HistoryDb._internal();
+  HistoryDb._internal();
+}
+// 对标 Kotlin: object HistoryDb { ... }  （Kotlin object 是语言级单例，Dart 要手写）
+```
+
+### 4.4 构造函数引用 `.new`（传给框架当工厂）
+
+Riverpod 注册 ViewModel 时，把「构造函数本身」当参数传，而不是 new 一个实例：
+
+```dart
+// timer_notifier.dart 第 190 行
+final timerProvider = NotifierProvider<TimerNotifier, TimerState>(
+  TimerNotifier.new,   // 构造函数引用，≈ Kotlin 的 TimerNotifier::new
+);                     // 框架在需要时自己 new，对标 Hilt 的 @Inject 构造
+```
+
+### 4.5 `const` 构造函数（见上一章 3.1 的 `Greeting`）
+
+要求所有字段 `final` 且构造体为空，意义是「编译期固化实例、多处复用」。Widget 几乎都带 `const`。
+
+> 🔑 口诀：**`_` 开头 = 私有；`._()` 私有构造 = 单例专用；`factory` = 可控返回；`.new` = 把构造函数当变量传；`const` 构造 = 编译期复用。**
+
+---
+
+## 5. `late` —— 延迟初始化（对标 Kotlin lateinit）
+
+声明时先不赋值，第一次访问时再初始化。常用于「构造时拿不到、稍后赋值」的字段。
+
+```dart
+late AnimationController _controller;  // 对标 Kotlin: lateinit var controller: AnimationController
+// 在 initState / build 里才 _controller = AnimationController(...)
+```
+**坑**：没初始化就访问会抛 `LateInitializationError`。对标 Kotlin `lateinit` 的 `UninitializedPropertyAccessException`。
+
+---
+
+## 6. 级联运算符 `..`（Java 没有，一眼懵）
+
+`..` 让你**在同一个对象上连续调用多个方法/设属性，返回的是对象本身**（不是最后一个方法的返回值）。对标 Kotlin 的 `apply { }`、Java 的 builder 链。
+
+**项目真实例子**（`history_db.dart` 第 122 行）：
+
+```dart
+return db.insert(
+  'pomodoro_records',
+  record.toMap()..remove('id'),   // 先 toMap()，再 remove('id')，返回的还是那个 Map
+);
+// 等价于（没有 .. 时你得这么写）：
+// final m = record.toMap();
+// m.remove('id');
+// db.insert('pomodoro_records', m);
+
+// 对标 Kotlin:
+// record.toContentValues().apply { remove("id") }
+```
+
+> 🔑 口诀：**`a..b()..c()` = 对 a 连续做 b、c，全程还是 a**。看代码遇到 `..` 别慌，就是「链式设置」。
+
+---
+
+## 7. 集合操作 map / where / fold（对标 Java Stream / Kotlin 集合）
+
+Dart 集合自带高阶函数，写法对标 Kotlin 集合 API、Java 的 Stream：
+
+| Dart | Kotlin | Java Stream |
+|------|--------|------|
+| `list.map((e) => ...)` | `list.map { ... }` | `list.stream().map(...)` |
+| `list.where((e) => ...)` | `list.filter { ... }` | `list.stream().filter(...)` |
+| `list.fold(init, (acc, e) => ...)` | `list.fold(init) { acc, e -> }` | `list.stream().reduce(...)` |
+| `list.toList()` | `list.toList()` | `list.stream().toList()` |
+
+**项目真实例子**（`history_db.dart` 第 143 行）——把 `List<Map>` 转成 `List<对象>`：
+
+```dart
+return maps.map((map) => PomodoroRecord.fromMap(map)).toList();
+//          │                     └ 每个 Map → PomodoroRecord 对象
+//          └ 映射（对标 Kotlin maps.map { PomodoroRecord.fromMap(it) }）
+```
+
+---
+
+## 8. `get` 异步 getter（容易被忽略的语法）
+
+Dart 里 `get xxx` 定义「只读属性」，调用时像字段一样 `obj.xxx` 不用加 `()`。它可以 `async`，返回 `Future`：
+
+```dart
+// history_db.dart 第 56 行
+Future<Database> get database async {   // get + async：obj.database 返回 Future<Database>
+  if (_db != null) return _db!;
+  _db = await _initDb();
+  return _db!;
+}
+// 调用：final db = await history.database;  // 像字段一样访问，实际是异步方法
+```
+对标 Kotlin：没有直接的 async property，通常写成 `suspend fun getDatabase(): Database`。
+
+---
+
+## 9. 类型判断与转换：`is` / `as`
+
+| Dart | 含义 | 对标 Java |
+|------|------|------|
+| `obj is String` | 判断类型（true 后自动智能转型） | `obj instanceof String` |
+| `obj as String` | 强制转换，失败抛 `CastError` | `(String) obj` |
+| `obj as? String` | **不存在**（Dart 没有安全转换） | `obj instanceof String ? (String) obj : null` |
+
+> 注意：Dart **没有** Kotlin 的 `as?` 安全转换。想要「转换失败返回 null」得自己写 `obj is T ? obj as T : null`，或 `try { obj as T } catch (_) { null }`。
+
+---
+
+## 10. `extension` 扩展（对标 Kotlin 扩展，Java 没有）
+
+给已有类（哪怕是 SDK 的类）加方法，不用继承：
+
+```dart
+extension IntExt on int {
+  String get toHex => '0x${toRadixString(16)}';  // 5.toHex → "0x5"
+}
+// 对标 Kotlin: val Int.toHex get() = "0x${toString(16)}"
+```
+你项目里目前没用 extension，但读第三方包源码时会大量遇到。
+
+---
+
+## 11. `mixin` —— 多重能力复用（对标 Kotlin 的 interface + 默认实现）
+
+Dart 单继承，但可以用 `mixin` + `with` 把「一组方法/状态」混入多个类。常见于动画、状态机：
+
+```dart
+// 文档动画章的真实例子（第 1408 行）
+class _AnimatedDemoState extends State<AnimatedDemo>
+    with SingleTickerProviderStateMixin {   // with = 混入这个 mixin 的能力
+  late AnimationController _controller;
+}
+// 对标 Kotlin: class X : State<...>, SingleTickerProvider
+// （Kotlin 用接口 + 默认方法实现，Dart 用 mixin 更纯粹地复用实现）
+```
+
+---
+
+## 12. 字符串插值 `$var` / `${expr}`（Java 没有，Kotlin 有）
+
+```dart
+final name = '张三';
+print('Hello, $name!');        // 单变量：$变量名
+print('长度: ${name.length}');  // 表达式：${表达式}
+// 对标 Kotlin: "Hello, $name!" / "长度: ${name.length}"
+// 对标 Java: 只有 String.format / 拼接，没有插值
+```
+你在 `device_channel.dart` 的 `debugPrint('requestPermissions error: ${e.message}')` 就是这写法。
+
+---
+
+## 13. `copyWith` 模式 —— Dart 没有 data class，靠它代替
+
+Kotlin 的 `data class` 自带 `copy()`（改一两个字段生成新对象）。**Dart 没有 data class**，所以状态类要手写 `copyWith`：
+
+```dart
+// timer_state.dart（被 timer_notifier.dart 大量调用）
+class TimerState {
+  final int remainingSeconds;
+  final TimerStatus status;
+  const TimerState({this.remainingSeconds = 0, this.status = TimerStatus.idle});
+
+  TimerState copyWith({int? remainingSeconds, TimerStatus? status}) =>  // 手写 copy
+    TimerState(
+      remainingSeconds: remainingSeconds ?? this.remainingSeconds,
+      status: status ?? this.status,
+    );
+}
+// 调用（timer_notifier.dart）：state = state.copyWith(status: TimerStatus.running);
+// 对标 Kotlin: state.copy(status = RUNNING)
+```
+> 看 `TimerNotifier` 代码里满屏的 `state.copyWith(...)` 就是在「不可变地更新状态」，对标 Kotlin data class 的 `copy`。
+
+---
+
+## 14. 异步（Future / async / await）—— 已有专章，这里只指路
+
+`Future<T>` 对标 Kotlin `suspend fun(): T` 的「异步返回值」，`async`/`await` 对标 `suspend`/直接调用。详见 [第十章 异步编程](#async)。你项目里 `device_channel.dart` 的每个方法都是 `Future<...> async { ... await _channel.invokeMethod(...) ... }`，就是「异步调原生 + 等结果」。
+
+---
+
+## 15. 一句话总览（看代码时扫一眼）
+
+| 你看到的符号 | 它是什么 | 先记住 |
+|------|------|------|
+| `Type?` / `?.` / `??` / `!` | 空安全家族 | 第 1 节 |
+| `final` / `const` / `static const` | 不可变/常量 | 第 2 节 |
+| `{required this.x}` | 命名参数 + 存字段 | 第 3 节 |
+| `=>` / `(_) =>` | 箭头函数 / 匿名 | 第 3 节 |
+| `_xxx` / `._()` | 私有 / 私有构造 | 第 4 节 |
+| `factory` / `.new` | 单例 / 构造引用 | 第 4 节 |
+| `late` | 延迟初始化 | 第 5 节 |
+| `..` | 级联调用 | 第 6 节 |
+| `map` / `where` / `fold` | 集合操作 | 第 7 节 |
+| `get xxx async` | 异步属性 | 第 8 节 |
+| `is` / `as` | 类型判断/转换 | 第 9 节 |
+| `extension` | 扩展方法 | 第 10 节 |
+| `mixin` / `with` | 能力混入 | 第 11 节 |
+| `$var` / `${expr}` | 字符串插值 | 第 12 节 |
+| `copyWith` | 手写 data class copy | 第 13 节 |
+
+> 🔑 终极口诀：**Dart 和 Kotlin 80% 像，差异集中在——没有 data class（用 copyWith）、没有 `as?` 安全转换、用 `..` 级联、用 `mixin` 复用、用 `_` 表示私有。剩下全是 Java/Kotlin 老朋友。**
 
 ---
 
